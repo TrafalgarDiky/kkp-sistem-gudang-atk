@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+prisma/migrations/
+
+# Uploaded files (gambar barang)
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+/generated/prisma

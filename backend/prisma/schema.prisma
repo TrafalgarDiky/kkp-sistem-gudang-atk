@@ -1,0 +1,215 @@
+// Prisma Schema untuk Sistem Gudang ATK
+// File ini mendefinisikan struktur database (tabel dan relasi)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Di Prisma 7, URL koneksi didefinisikan di prisma.config.ts (bukan di sini)
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// MODEL: Users (Pengguna)
+// ============================================
+model User {
+  id          String   @id @default(uuid())
+  nama        String
+  email       String   @unique
+  passwordHash String  @map("password_hash")
+  role        Role     @default(STAFF)
+  statusAkun  StatusAkun @default(BELUM_VERIFIKASI) @map("status_akun")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relasi: satu user bisa punya banyak permintaan
+  permintaanSebagaiPeminta Permintaan[] @relation("Peminta")
+  
+  // Relasi: satu admin bisa approve banyak permintaan
+  permintaanYangDiApprove Permintaan[] @relation("Approver")
+  
+  // Relasi: admin yang sedang memegang lock permintaan (multi-admin)
+  permintaanYangDiambil Permintaan[] @relation("AssignedAdmin")
+  
+  // Relasi: admin yang assign tugas ke petugas
+  tugasYangDiassign TugasPetugas[] @relation("AssignedByAdmin")
+  
+  // Relasi: satu petugas bisa punya banyak tugas
+  tugasPetugas TugasPetugas[] @relation("Petugas")
+
+  // Relasi: admin yang mencatat restock / log stok
+  stokMasukDicatat StokMasuk[] @relation("AdminStokMasuk")
+  logStokDicatat   LogStok[]   @relation("AdminLogStok")
+
+  @@map("users")
+}
+
+// ============================================
+// MODEL: Barang (Katalog ATK)
+// ============================================
+model Barang {
+  id           String   @id @default(uuid())
+  nama         String
+  deskripsi    String?
+  satuan       String
+  stok         Int      @default(0)
+  stokMinimum  Int?     @map("stok_minimum") // Untuk alert stok menipis (opsional)
+  gambarUrl    String?  @map("gambar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  permintaanItems PermintaanItem[]
+  stokMasuk       StokMasuk[]
+  logStok         LogStok[]
+
+  @@map("barang")
+}
+
+// ============================================
+// MODEL: Permintaan (Request dari Staff)
+// ============================================
+model Permintaan {
+  id               String      @id @default(uuid())
+  pemintaId        String      @map("peminta_id")
+  statusAdmin      StatusAdmin @default(MENUNGGU_ADMIN) @map("status_admin")
+  approvedBy       String?     @map("approved_by")
+  approvedAt       DateTime?   @map("approved_at")
+  catatanAdmin     String?     @map("catatan_admin")
+  assignedAdminId  String?     @map("assigned_admin_id")  // Admin yang sedang memproses (lock)
+  lockedAt         DateTime?   @map("locked_at")          // Waktu ambil tugas (lock 10 menit)
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  peminta       User   @relation("Peminta", fields: [pemintaId], references: [id])
+  approver      User?  @relation("Approver", fields: [approvedBy], references: [id])
+  assignedAdmin User?  @relation("AssignedAdmin", fields: [assignedAdminId], references: [id])
+  items         PermintaanItem[]
+  tugasPetugas  TugasPetugas[]
+
+  @@map("permintaan")
+}
+
+// ============================================
+// MODEL: PermintaanItem (Detail barang di permintaan)
+// ============================================
+model PermintaanItem {
+  id          String    @id @default(uuid())
+  permintaanId String   @map("permintaan_id")
+  barangId    String    @map("barang_id")
+  jumlah      Int
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relasi: item ini bagian dari permintaan mana
+  permintaan Permintaan @relation(fields: [permintaanId], references: [id], onDelete: Cascade)
+  
+  // Relasi: item ini untuk barang apa
+  barang Barang @relation(fields: [barangId], references: [id])
+
+  @@map("permintaan_item")
+}
+
+// ============================================
+// MODEL: TugasPetugas (Tugas untuk petugas gudang)
+// ============================================
+model TugasPetugas {
+  id                 String        @id @default(uuid())
+  permintaanId       String        @map("permintaan_id")
+  petugasId          String?       @map("petugas_id")
+  assignedByAdminId  String?       @map("assigned_by_admin_id")  // Admin yang assign petugas
+  statusTugas        StatusTugas   @default(MENUNGGU_ASSIGN) @map("status_tugas")
+  dibuatOtomatis     Boolean       @default(true) @map("dibuat_otomatis")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  permintaan       Permintaan @relation(fields: [permintaanId], references: [id], onDelete: Cascade)
+  petugas          User?      @relation("Petugas", fields: [petugasId], references: [id])
+  assignedByAdmin  User?      @relation("AssignedByAdmin", fields: [assignedByAdminId], references: [id])
+
+  @@map("tugas_petugas")
+}
+
+// ============================================
+// MODEL: StokMasuk (Restock — barang masuk)
+// ============================================
+model StokMasuk {
+  id        String   @id @default(uuid())
+  barangId  String   @map("barang_id")
+  jumlah    Int
+  sumber    String?  // Contoh: "Pembelian", "Donasi"
+  tanggal   DateTime @default(now())
+  adminId  String   @map("admin_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  barang Barang @relation(fields: [barangId], references: [id], onDelete: Cascade)
+  admin  User   @relation("AdminStokMasuk", fields: [adminId], references: [id])
+
+  @@map("stok_masuk")
+}
+
+// ============================================
+// MODEL: LogStok (Audit perubahan stok)
+// ============================================
+model LogStok {
+  id           String    @id @default(uuid())
+  barangId     String    @map("barang_id")
+  perubahan    Int       // + atau -
+  jenis        JenisLogStok @map("jenis")
+  referensiId  String?   @map("referensi_id") // id permintaan / stok_masuk
+  adminId      String?   @map("admin_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  barang Barang @relation(fields: [barangId], references: [id], onDelete: Cascade)
+  admin  User?  @relation("AdminLogStok", fields: [adminId], references: [id])
+
+  @@map("log_stok")
+}
+
+// ============================================
+// ENUM: Jenis Log Stok
+// ============================================
+enum JenisLogStok {
+  APPROVE      // Stok berkurang karena permintaan disetujui & selesai
+  RESTOCK      // Stok bertambah dari restock
+  PENYESUAIAN  // Edit manual stok
+}
+
+// ============================================
+// ENUM: Role Pengguna
+// ============================================
+enum Role {
+  STAFF
+  ADMIN
+  PETUGAS
+}
+
+// ============================================
+// ENUM: Status Akun User
+// ============================================
+enum StatusAkun {
+  BELUM_VERIFIKASI
+  AKTIF
+  DITOLAK
+}
+
+// ============================================
+// ENUM: Status Permintaan (dari sisi admin)
+// ============================================
+enum StatusAdmin {
+  MENUNGGU_ADMIN
+  DISETUJUI_ADMIN
+  DITOLAK_ADMIN
+  SELESAI
+}
+
+// ============================================
+// ENUM: Status Tugas Petugas
+// ============================================
+enum StatusTugas {
+  MENUNGGU_ASSIGN  // Disetujui, belum ada petugas yang di-assign
+  ON_DELIVERY      // Sedang dikirim petugas
+  DELIVERED        // Sudah sampai / selesai
+  DALAM_PROSES     // (legacy) dalam proses
+  SELESAI          // (legacy) selesai
+  DITOLAK          // Permintaan ditolak admin
+}

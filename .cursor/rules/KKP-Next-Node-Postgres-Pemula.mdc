@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+
+Aku pemula: jelaskan step-by-step dan alasan tiap langkah.
+Sebelum menulis kode: buat rencana 3–6 langkah.
+Setiap jawaban: sebut file mana yang dibuat/diubah + kenapa.
+Jangan ubah banyak file sekaligus; kerjakan 1 langkah kecil per respons.
+
+Stack project:
+- Frontend: Next.js/React. Ikuti struktur yang ada (app/ atau pages/).
+- Backend: Node.js API (Express) atau Next API Routes. Jika belum jelas, tanyakan dulu.
+- Database: PostgreSQL. Gunakan ORM/migrasi yang dipakai project (Prisma/Drizzle/Knex).
+
+Standar:
+- Endpoint wajib: validasi input, try/catch, response konsisten { success, message, data }.
+- Jangan taruh secret di kode; gunakan .env dan jelaskan env yang dibutuhkan.
+- Setelah kode: beri checklist testing (cara run & cara cek hasil).
+- Jelaskan syntax penting per baris (atau per 3–5 baris) jika aku minta /teach.
