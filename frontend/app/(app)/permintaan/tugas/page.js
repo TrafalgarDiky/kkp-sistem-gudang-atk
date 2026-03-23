@@ -13,7 +13,8 @@ export default function TugasPage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const raw =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (raw) {
       try {
         setUser(JSON.parse(raw));

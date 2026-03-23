@@ -18,7 +18,8 @@ export default function UsersPage() {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   useEffect(() => {
-    const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const raw =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (raw) {
       try {
         setUser(JSON.parse(raw));
@@ -30,7 +31,9 @@ export default function UsersPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(apiUrl("/api/auth/users"), { headers: getAuthHeaders() });
+      const res = await fetch(apiUrl("/api/auth/users"), {
+        headers: getAuthHeaders(),
+      });
       const data = await res.json();
       if (data.success) setUsers(data.data?.users || []);
       else setError(data.message || "Gagal memuat user");
@@ -65,7 +68,8 @@ export default function UsersPage() {
     try {
       const body = {};
       if (form.role !== editing.role) body.role = form.role;
-      if (form.statusAkun !== editing.statusAkun) body.statusAkun = form.statusAkun;
+      if (form.statusAkun !== editing.statusAkun)
+        body.statusAkun = form.statusAkun;
       if (Object.keys(body).length === 0) {
         closeModal();
         setSubmitLoading(false);
@@ -114,8 +118,14 @@ export default function UsersPage() {
     );
   }
 
-  const labelStatus = (s) => ({ AKTIF: "Aktif", DITOLAK: "Ditolak", BELUM_VERIFIKASI: "Belum verifikasi" }[s] || s);
-  const labelRole = (r) => ({ ADMIN: "Admin", STAFF: "Staff", PETUGAS: "Petugas" }[r] || r);
+  const labelStatus = (s) =>
+    ({
+      AKTIF: "Aktif",
+      DITOLAK: "Ditolak",
+      BELUM_VERIFIKASI: "Belum verifikasi",
+    })[s] || s;
+  const labelRole = (r) =>
+    ({ ADMIN: "Admin", STAFF: "Staff", PETUGAS: "Petugas" })[r] || r;
 
   return (
     <main className="app-content">
@@ -124,13 +134,20 @@ export default function UsersPage() {
         Kelola akun: verifikasi, ubah role, aktif/nonaktif.
       </p>
 
-      {error && <p style={{ color: "var(--danger)", marginBottom: "0.5rem" }}>{error}</p>}
+      {error && (
+        <p style={{ color: "var(--danger)", marginBottom: "0.5rem" }}>
+          {error}
+        </p>
+      )}
 
       {loading ? (
         <p className="app-muted">Memuat...</p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
+          <table
+            className="app-table"
+            style={{ width: "100%", fontSize: "0.9rem" }}
+          >
             <thead>
               <tr>
                 <th>Nama</th>
@@ -142,7 +159,11 @@ export default function UsersPage() {
             </thead>
             <tbody>
               {users.length === 0 ? (
-                <tr><td colSpan={5} className="app-muted">Belum ada user.</td></tr>
+                <tr>
+                  <td colSpan={5} className="app-muted">
+                    Belum ada user.
+                  </td>
+                </tr>
               ) : (
                 users.map((u) => (
                   <tr key={u.id}>
@@ -153,12 +174,30 @@ export default function UsersPage() {
                     <td>
                       {u.statusAkun === "BELUM_VERIFIKASI" && (
                         <>
-                          <button type="button" className="btn btn-sm" style={{ marginRight: "0.5rem" }} onClick={() => handleVerify(u.id, "AKTIF")}>Setujui</button>
-                          <button type="button" className="btn btn-sm btn-danger" onClick={() => handleVerify(u.id, "DITOLAK")}>Tolak</button>
-                          {" "}
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{ marginRight: "0.5rem" }}
+                            onClick={() => handleVerify(u.id, "AKTIF")}
+                          >
+                            Setujui
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleVerify(u.id, "DITOLAK")}
+                          >
+                            Tolak
+                          </button>{" "}
                         </>
                       )}
-                      <button type="button" className="btn btn-sm btn-secondary" onClick={() => openEdit(u)}>Edit</button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => openEdit(u)}
+                      >
+                        Edit
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -169,16 +208,43 @@ export default function UsersPage() {
       )}
 
       {modalOpen && editing && (
-        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={closeModal}>
-          <div className="modal-content" style={{ background: "var(--bg)", padding: "1.5rem", borderRadius: "8px", minWidth: "320px" }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={closeModal}
+        >
+          <div
+            className="modal-content"
+            style={{
+              background: "var(--bg)",
+              padding: "1.5rem",
+              borderRadius: "8px",
+              minWidth: "320px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 style={{ marginBottom: "1rem" }}>Edit User: {editing.nama}</h3>
             <form onSubmit={handleSubmit}>
               <label style={{ display: "block", marginBottom: "0.75rem" }}>
                 Role
                 <select
                   value={form.role}
-                  onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                  style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, role: e.target.value }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    marginTop: "0.25rem",
+                  }}
                 >
                   <option value="ADMIN">Admin</option>
                   <option value="STAFF">Staff</option>
@@ -189,17 +255,37 @@ export default function UsersPage() {
                 Status Akun
                 <select
                   value={form.statusAkun}
-                  onChange={(e) => setForm((f) => ({ ...f, statusAkun: e.target.value }))}
-                  style={{ width: "100%", padding: "0.5rem", marginTop: "0.25rem" }}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, statusAkun: e.target.value }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "0.5rem",
+                    marginTop: "0.25rem",
+                  }}
                 >
                   <option value="AKTIF">Aktif</option>
                   <option value="DITOLAK">Ditolak</option>
                   <option value="BELUM_VERIFIKASI">Belum verifikasi</option>
                 </select>
               </label>
-              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                <button type="submit" className="btn btn-primary" disabled={submitLoading}>{submitLoading ? "Menyimpan..." : "Simpan"}</button>
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Batal</button>
+              <div
+                style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}
+              >
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={submitLoading}
+                >
+                  {submitLoading ? "Menyimpan..." : "Simpan"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={closeModal}
+                >
+                  Batal
+                </button>
               </div>
             </form>
           </div>

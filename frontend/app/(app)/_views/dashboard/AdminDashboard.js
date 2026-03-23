@@ -59,43 +59,97 @@ export default function AdminDashboard({ user }) {
   const stokMenipis = data?.stokMenipis ?? [];
   const antrianPending = data?.antrianPending ?? [];
   const tugasAktif = data?.tugasAktif ?? [];
+  const totalDelivered = data?.totalDelivered ?? 0;
+
+  const statCards = [
+    {
+      key: "waiting",
+      label: "Menunggu Diambil",
+      value: totalPending,
+      bg: "#fff7ed",
+      border: "#fdba74",
+      color: "#f59e0b",
+      icon: "fa-solid fa-clock",
+      link: "/permintaan",
+      linkLabel: "Lihat daftar",
+    },
+    {
+      key: "delivery",
+      label: "Sedang Diantar",
+      value: totalOnDelivery,
+      bg: "#eff6ff",
+      border: "#93c5fd",
+      color: "#3b82f6",
+      icon: "fa-solid fa-truck",
+    },
+    {
+      key: "lowstock",
+      label: "Stok Menipis",
+      value: stokMenipis.length,
+      bg: "#f5f3ff",
+      border: "#c4b5fd",
+      color: "#8b5cf6",
+      icon: "fa-solid fa-boxes-stacked",
+      link: "/barang",
+      linkLabel: "Kelola barang",
+    },
+    {
+      key: "delivered",
+      label: "Selesai",
+      value: totalDelivered,
+      bg: "#ecfdf5",
+      border: "#86efac",
+      color: "#22c55e",
+      icon: "fa-solid fa-circle-check",
+    },
+  ];
 
   return (
     <main className="app-content">
       <h1>Dashboard Admin</h1>
       {user && (
         <p className="app-muted" style={{ marginBottom: "1.5rem" }}>
-          Halo, <strong>{user.nama}</strong>. Ringkasan gudang dan antrian.
+          Halo, <strong>{user.nama}</strong>. Ringkasan operasional gudang hari ini.
         </p>
       )}
 
       {/* Kartu ringkasan */}
-      <div className="dashboard-cards" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-        <div className="card" style={{ padding: "1rem", borderRadius: "8px", background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div style={{ fontSize: "0.9rem", color: "var(--muted)" }}>Permintaan Pending</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>{totalPending}</div>
-          <Link href="/permintaan" style={{ fontSize: "0.85rem", marginTop: "0.5rem", display: "inline-block" }}>Lihat →</Link>
-        </div>
-        <div className="card" style={{ padding: "1rem", borderRadius: "8px", background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div style={{ fontSize: "0.9rem", color: "var(--muted)" }}>Sedang Dikirim</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: "700" }}>{totalOnDelivery}</div>
-        </div>
-        <div className="card" style={{ padding: "1rem", borderRadius: "8px", background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div style={{ fontSize: "0.9rem", color: "var(--muted)" }}>Stok Menipis</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: "700", color: stokMenipis.length > 0 ? "var(--warning)" : "inherit" }}>{stokMenipis.length}</div>
-          {stokMenipis.length > 0 && (
-            <Link href="/barang" style={{ fontSize: "0.85rem", marginTop: "0.5rem", display: "inline-block" }}>Kelola →</Link>
-          )}
-        </div>
+      <div className="stats-grid" style={{ marginBottom: "1.35rem" }}>
+        {statCards.map((card) => (
+          <div
+            key={card.key}
+            className="stats-card"
+            style={{
+              "--accent": card.color,
+              "--accent-soft": card.bg,
+            }}
+          >
+            <div className="stats-card-head">
+              <span className="stats-icon">
+                <i className={card.icon} />
+              </span>
+              <div className="stats-value">{card.value}</div>
+            </div>
+            <div className="stats-label">{card.label}</div>
+            {card.link && (
+              <Link
+                href={card.link}
+                className="stats-link"
+              >
+                {card.linkLabel} →
+              </Link>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Stok menipis (list singkat) */}
       {stokMenipis.length > 0 && (
         <section style={{ marginBottom: "1.5rem" }}>
           <h2 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>Barang stok di bawah minimum</h2>
-          <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "12px" }}>
             {stokMenipis.slice(0, 5).map((b) => (
-              <li key={b.id} style={{ padding: "0.35rem 0", borderBottom: "1px solid var(--border)" }}>
+              <li key={b.id} style={{ padding: "0.55rem 0.75rem", borderBottom: "1px solid var(--border)" }}>
                 {b.nama} — stok: <strong>{b.stok}</strong> {b.satuan} (min: {b.stokMinimum})
               </li>
             ))}
@@ -103,50 +157,64 @@ export default function AdminDashboard({ user }) {
         </section>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.5rem" }}>
-        {/* Antrian pending */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1rem" }}>
+      {/* Antrian siap diambil petugas */}
         <section>
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>Antrian menunggu persetujuan</h2>
+          <div className="page-head" style={{ marginBottom: "0.45rem" }}>
+            <h2 style={{ fontSize: "1.05rem", margin: 0 }}>Antrian menunggu diambil petugas</h2>
+            <Link href="/permintaan" className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.35rem 0.7rem" }}>
+              Buka Permintaan
+            </Link>
+          </div>
           {antrianPending.length === 0 ? (
             <p className="app-muted">Tidak ada.</p>
           ) : (
-            <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
-              <thead>
-                <tr><th>Peminta</th><th>Barang</th><th>Aksi</th></tr>
-              </thead>
-              <tbody>
-                {antrianPending.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.peminta?.nama ?? "-"}</td>
-                    <td>{p.items?.map((i) => i.barang?.nama).filter(Boolean).join(", ") || "-"}</td>
-                    <td><Link href="/permintaan">Proses</Link></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-wrap">
+              <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
+                <thead>
+                  <tr><th>Peminta</th><th>Barang</th><th>Aksi</th></tr>
+                </thead>
+                <tbody>
+                  {antrianPending.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.peminta?.nama ?? "-"}</td>
+                      <td>{p.items?.map((i) => i.barang?.nama).filter(Boolean).join(", ") || "-"}</td>
+                      <td><Link href="/permintaan">Lihat</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
         {/* Tugas pengantaran aktif */}
         <section>
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>Tugas pengantaran aktif</h2>
+          <div className="page-head" style={{ marginBottom: "0.45rem" }}>
+            <h2 style={{ fontSize: "1.05rem", margin: 0 }}>Tugas pengantaran aktif</h2>
+            <Link href="/permintaan/tugas" className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.35rem 0.7rem" }}>
+              Lihat Tugas
+            </Link>
+          </div>
           {tugasAktif.length === 0 ? (
             <p className="app-muted">Tidak ada.</p>
           ) : (
-            <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
-              <thead>
-                <tr><th>Peminta</th><th>Petugas</th><th>Status</th></tr>
-              </thead>
-              <tbody>
-                {tugasAktif.map((t) => (
-                  <tr key={t.id}>
-                    <td>{t.permintaan?.peminta?.nama ?? "-"}</td>
-                    <td>{t.petugas?.nama ?? "Belum diambil"}</td>
-                    <td>{t.statusTugas === "ON_DELIVERY" ? "Dalam perjalanan" : "Menunggu diambil"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-wrap">
+              <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
+                <thead>
+                  <tr><th>Peminta</th><th>Petugas</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  {tugasAktif.map((t) => (
+                    <tr key={t.id}>
+                      <td>{t.permintaan?.peminta?.nama ?? "-"}</td>
+                      <td>{t.petugas?.nama ?? "Belum diambil"}</td>
+                      <td>{t.statusTugas === "ON_DELIVERY" ? "Dalam perjalanan" : "Menunggu diambil"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>

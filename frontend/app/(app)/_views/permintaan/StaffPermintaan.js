@@ -8,6 +8,13 @@ import { apiUrl, getAuthHeaders } from "@/lib/api";
 
 function getStatusDisplay(p) {
   if (p.statusAdmin === "MENUNGGU_ADMIN") return "Pending";
+  if (
+    p.statusAdmin === "DITOLAK_ADMIN" &&
+    typeof p.catatanAdmin === "string" &&
+    p.catatanAdmin.toLowerCase().startsWith("dibatalkan oleh staff")
+  ) {
+    return "Dibatalkan";
+  }
   if (p.statusAdmin === "DITOLAK_ADMIN") return "Ditolak";
   if (p.statusAdmin === "SELESAI") return "Delivered";
   if (p.statusAdmin === "DISETUJUI_ADMIN") {
@@ -48,14 +55,51 @@ export default function StaffPermintaan() {
   const filtered = filterStatus
     ? permintaan.filter((p) => {
         if (filterStatus === "ON_DELIVERY")
-          return p.statusAdmin === "DISETUJUI_ADMIN" && p.tugasPetugas?.[0]?.petugas;
+          return (
+            p.statusAdmin === "DISETUJUI_ADMIN" && p.tugasPetugas?.[0]?.petugas
+          );
         if (filterStatus === "DISETUJUI_ADMIN")
-          return p.statusAdmin === "DISETUJUI_ADMIN" && !p.tugasPetugas?.[0]?.petugas;
+          return (
+            p.statusAdmin === "DISETUJUI_ADMIN" && !p.tugasPetugas?.[0]?.petugas
+          );
         return p.statusAdmin === filterStatus;
       })
     : permintaan;
 
-  const detailPermintaan = detailId ? permintaan.find((p) => p.id === detailId) : null;
+  const detailPermintaan = detailId
+    ? permintaan.find((p) => p.id === detailId)
+    : null;
+
+  const canBatalkan = (p) => {
+    if (!p) return false;
+    if (["SELESAI", "DITOLAK_ADMIN"].includes(p.statusAdmin)) return false;
+    const tugas = p.tugasPetugas?.[0];
+    if (!tugas) return true;
+    if (tugas.petugasId) return false;
+    if (["ON_DELIVERY", "DALAM_PROSES", "SELESAI", "DELIVERED"].includes(tugas.statusTugas)) return false;
+    return true;
+  };
+
+  const handleBatalkan = async (permintaanId) => {
+    const ok = window.confirm("Yakin ingin membatalkan permintaan ini?");
+    if (!ok) return;
+    setError("");
+    try {
+      const res = await fetch(apiUrl(`/api/permintaan/${permintaanId}/batal`), {
+        method: "PATCH",
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.message || "Gagal membatalkan permintaan");
+        return;
+      }
+      await fetchPermintaan();
+      if (detailId === permintaanId) setDetailId(null);
+    } catch (_) {
+      setError("Koneksi gagal.");
+    }
+  };
 
   return (
     <main className="app-content">
@@ -67,11 +111,19 @@ export default function StaffPermintaan() {
 
       {!loading && permintaan.length > 0 && (
         <div style={{ marginBottom: "1rem" }}>
-          <label style={{ marginRight: "0.5rem", color: "#a1a1aa" }}>Filter status:</label>
+          <label style={{ marginRight: "0.5rem", color: "#a1a1aa" }}>
+            Filter status:
+          </label>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: "0.4rem 0.75rem", borderRadius: "8px", background: "#212030", border: "1px solid #2a2835", color: "#f9f9f9" }}
+            style={{
+              padding: "0.4rem 0.75rem",
+              borderRadius: "8px",
+              background: "#212030",
+              border: "1px solid #2a2835",
+              color: "#f9f9f9",
+            }}
           >
             <option value="">Semua</option>
             <option value="MENUNGGU_ADMIN">Pending</option>
@@ -86,9 +138,13 @@ export default function StaffPermintaan() {
       {loading ? (
         <p className="app-muted">Memuat...</p>
       ) : permintaan.length === 0 ? (
-        <p className="app-muted">Belum ada permintaan. Buat dari Katalog ATK.</p>
+        <p className="app-muted">
+          Belum ada permintaan. Buat dari Katalog ATK.
+        </p>
       ) : filtered.length === 0 ? (
-        <p className="app-muted">Tidak ada permintaan dengan status tersebut.</p>
+        <p className="app-muted">
+          Tidak ada permintaan dengan status tersebut.
+        </p>
       ) : (
         <div className="table-wrap">
           <table className="app-table">
@@ -111,7 +167,12 @@ export default function StaffPermintaan() {
                     </span>
                   </td>
                   <td>
-                    {p.items?.map((it) => `${it.barang?.nama} × ${it.jumlah} ${it.barang?.satuan}`).join(", ")}
+                    {p.items
+                      ?.map(
+                        (it) =>
+                          `${it.barang?.nama} × ${it.jumlah} ${it.barang?.satuan}`,
+                      )
+                      .join(", ")}
                   </td>
                   <td>{p.tugasPetugas?.[0]?.petugas?.nama ?? "—"}</td>
                   <td>
@@ -122,6 +183,16 @@ export default function StaffPermintaan() {
                     >
                       Detail
                     </button>
+                    {canBatalkan(p) && (
+                      <button
+                        type="button"
+                        className="btn-sm btn-danger"
+                        style={{ marginLeft: "0.35rem" }}
+                        onClick={() => handleBatalkan(p.id)}
+                      >
+                        Batalkan
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -134,13 +205,19 @@ export default function StaffPermintaan() {
         <div className="modal-overlay" onClick={() => setDetailId(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <h2>Detail permintaan</h2>
-            <p><strong>Tanggal:</strong> {new Date(detailPermintaan.createdAt).toLocaleString("id-ID")}</p>
-            <p><strong>Status:</strong>{" "}
+            <p>
+              <strong>Tanggal:</strong>{" "}
+              {new Date(detailPermintaan.createdAt).toLocaleString("id-ID")}
+            </p>
+            <p>
+              <strong>Status:</strong>{" "}
               <span className={`badge badge-${detailPermintaan.statusAdmin}`}>
                 {getStatusDisplay(detailPermintaan)}
               </span>
             </p>
-            <p><strong>Daftar barang:</strong></p>
+            <p>
+              <strong>Daftar barang:</strong>
+            </p>
             <ul style={{ marginLeft: "1.25rem", marginBottom: "0.75rem" }}>
               {detailPermintaan.items?.map((it) => (
                 <li key={it.id}>
@@ -148,10 +225,30 @@ export default function StaffPermintaan() {
                 </li>
               ))}
             </ul>
-            <p><strong>Petugas pengantar:</strong> {detailPermintaan.tugasPetugas?.[0]?.petugas?.nama ?? "Belum ditugaskan"}</p>
-            <p><strong>Lokasi pengantaran:</strong> <span className="app-muted">—</span></p>
+            <p>
+              <strong>Petugas pengantar:</strong>{" "}
+              {detailPermintaan.tugasPetugas?.[0]?.petugas?.nama ??
+                "Belum ditugaskan"}
+            </p>
+            <p>
+              <strong>Lokasi pengantaran:</strong>{" "}
+              <span className="app-muted">—</span>
+            </p>
             <div className="modal-actions" style={{ marginTop: "1rem" }}>
-              <button type="button" className="btn-secondary" onClick={() => setDetailId(null)}>
+              {canBatalkan(detailPermintaan) && (
+                <button
+                  type="button"
+                  className="btn-sm btn-danger"
+                  onClick={() => handleBatalkan(detailPermintaan.id)}
+                >
+                  Batalkan Permintaan
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setDetailId(null)}
+              >
                 Tutup
               </button>
             </div>

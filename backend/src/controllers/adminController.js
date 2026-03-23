@@ -13,15 +13,14 @@ import { successResponse, errorResponse } from '../utils/response.js';
  */
 export async function getDashboard(req, res) {
   try {
-    const [totalPending, totalOnDelivery, barangList, antrianPending, tugasAktif] = await Promise.all([
-      prisma.permintaan.count({ where: { statusAdmin: 'PENDING_APPROVAL' } }),
-      prisma.permintaan.count({ where: { statusAdmin: 'ON_DELIVERY' } }),
+    const [totalPending, totalOnDelivery, barangList, antrianPending, tugasAktif, totalDelivered] = await Promise.all([
+      prisma.tugasPetugas.count({ where: { statusTugas: 'MENUNGGU_ASSIGN' } }),
+      prisma.tugasPetugas.count({ where: { statusTugas: 'ON_DELIVERY' } }),
       prisma.barang.findMany({
-        where: { stok: { not: null } },
         select: { id: true, nama: true, satuan: true, stok: true, stokMinimum: true },
       }),
       prisma.permintaan.findMany({
-        where: { statusAdmin: 'PENDING_APPROVAL' },
+        where: { statusAdmin: 'DISETUJUI_ADMIN', tugasPetugas: { some: { petugasId: null, statusTugas: 'MENUNGGU_ASSIGN' } } },
         take: 5,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -40,6 +39,7 @@ export async function getDashboard(req, res) {
           petugas: { select: { nama: true } },
         },
       }),
+      prisma.tugasPetugas.count({ where: { statusTugas: { in: ['SELESAI', 'DELIVERED'] } } }),
     ]);
 
     const stokMenipis = barangList.filter((b) => b.stokMinimum != null && b.stok < b.stokMinimum);
@@ -50,6 +50,7 @@ export async function getDashboard(req, res) {
       stokMenipis,
       antrianPending,
       tugasAktif,
+      totalDelivered,
     });
   } catch (err) {
     console.error('Admin dashboard error:', err);

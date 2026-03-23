@@ -2,20 +2,31 @@
   box-sizing: border-box;
 }
 
+:root {
+  --auth-primary: #4f46e5;
+  --auth-primary-dark: #3730a3;
+  --auth-primary-light: #818cf8;
+  --auth-bg: #f8fafc;
+  --auth-text: #1f2937;
+  --auth-text-secondary: #64748b;
+  --auth-border: #e2e8f0;
+}
+
 /* Wrapper hanya di halaman login — biar body global tidak berubah */
 .auth-page {
   margin: 0;
-  background: radial-gradient(circle at top, #1a1a1a, #262494);
-  color: #fdfdfd;
+  background: radial-gradient(circle at top, #dfe3ff 0%, #edefff 35%, #f8fafc 70%);
+  color: var(--auth-text);
   min-height: 100vh;
   display: grid;
   place-items: center;
   overflow: hidden;
-  font-family: 'Poppins', 'Segoe UI', Tahoma, sans-serif;
+  font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
 }
-h2, h1 {
-font-family: 'Poppins', sans-serif;
-font-weight: 600; /* bisa lebih bold sesuai keinginan */
+h2,
+h1 {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600; /* bisa lebih bold sesuai keinginan */
 }
 
 .card {
@@ -23,9 +34,14 @@ font-weight: 600; /* bisa lebih bold sesuai keinginan */
   overflow: hidden;
   width: 660px;
   height: 440px;
-  border-radius: 16px;
-  background: #13111b;
-  border: 8px solid #13111b;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 24px 52px rgba(55, 48, 163, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
 .card-bg {
@@ -35,7 +51,7 @@ font-weight: 600; /* bisa lebih bold sesuai keinginan */
   left: 0;
   bottom: 0;
   width: 50%;
-  background: #3c23c9;
+  background: linear-gradient(135deg, var(--auth-primary), var(--auth-primary-dark));
   border-radius: 12px;
   translate: 0 0;
   transition: 0.65s ease-in-out;
@@ -90,7 +106,7 @@ font-weight: 600; /* bisa lebih bold sesuai keinginan */
   justify-content: center;
   gap: 16px;
   width: 50%;
-  color: #f9f9f9;
+  color: #f8fafc;
   text-align: center;
   padding: 0 24px;
 }
@@ -118,7 +134,7 @@ h2 {
 
 .hero p {
   margin: 0 0 6px;
-  color: #cac9d2;
+  color: #e2e8f0;
   line-height: 1.45;
 }
 
@@ -128,19 +144,20 @@ h2 {
   letter-spacing: 1px;
   font-family: inherit;
   color: inherit;
-  border: 1px solid #f9f9f9;
+  border: 1px solid #ffffff;
   background: transparent;
-  transition: 0.3s;
+  transition: 0.25s ease;
   cursor: pointer;
 }
 
 .hero button:hover {
-  color: #3c23c9;
-  background: #f9f9f9;
+  color: var(--auth-primary-dark);
+  background: #ffffff;
+  transform: translateY(-1px);
 }
 
 .form {
-  background: #13111b;
+  background: rgba(255, 255, 255, 0.5);
   z-index: 1;
   width: 50%;
   display: flex;
@@ -149,6 +166,9 @@ h2 {
   align-items: center;
   gap: 16px;
   padding: 32px;
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .form h2 {
@@ -166,7 +186,7 @@ h2 {
 .form form > a {
   font-size: 14px;
   margin-top: 10px;
-  color: #63626b;
+  color: var(--auth-text-secondary);
 }
 
 .sso a {
@@ -175,9 +195,10 @@ h2 {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid #464555;
+  border: 2px solid #dbe3f0;
   font-size: 16px;
-  color: #fdfdfd;
+  color: #475569;
+  background: #f8fafc;
 }
 
 .form form {
@@ -191,18 +212,25 @@ h2 {
 .form p {
   margin: 0 0 -8px;
   text-align: center;
-  color: #63626b;
+  color: var(--auth-text-secondary);
   font-size: 12px;
 }
 
 .form input {
   font-family: inherit;
-  border-radius: 10px;
-  border: 0;
-  background: #212030;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--auth-border);
   padding: 14px 12px;
-  color: inherit;
+  color: var(--auth-text);
   width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form input:focus {
+  outline: none;
+  border-color: var(--auth-primary-light);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
 /* Wrapper password + tombol visibility (ikon mata) */
@@ -225,7 +253,7 @@ h2 {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #63626b;
+  color: #64748b;
   cursor: pointer;
   border-radius: 6px;
   display: flex;
@@ -236,27 +264,34 @@ h2 {
 }
 
 .form .pw-toggle:hover {
-  color: #f9f9f9;
+  color: #64748b;
 }
 
 .form .pw-toggle:focus {
   outline: none;
-  color: #cac9d2;
+  color: #64748b;
 }
 
 .form input::placeholder {
-  color: #63626b;
+  color: #94a3b8;
 }
 
 .form select {
   font-family: inherit;
-  border-radius: 10px;
-  border: 0;
-  background: #212030;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--auth-border);
   padding: 14px 12px;
-  color: inherit;
+  color: var(--auth-text);
   width: 100%;
   cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form select:focus {
+  outline: none;
+  border-color: var(--auth-primary-light);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
 .form .error-msg,
@@ -267,16 +302,31 @@ h2 {
   text-align: center;
 }
 
-.form .error-msg { color: #f87171; }
-.form .success-msg { color: #86efac; }
+.form .error-msg {
+  color: #f87171;
+}
+.form .success-msg {
+  color: #16a34a;
+}
 
 .form button {
   border: 0;
   padding: 14px 0;
-  border-radius: 32px;
+  border-radius: 14px;
   font-family: inherit;
-  color: #f9f9f9;
+  color: #ffffff;
   width: 160px;
   margin-top: 10px;
-  background: #3c23c9;
+  background: var(--auth-primary);
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.25);
+}
+
+.form button:hover {
+  background: var(--auth-primary-dark);
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 14px 24px rgba(79, 70, 229, 0.28);
 }

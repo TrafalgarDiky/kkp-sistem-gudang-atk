@@ -16,6 +16,7 @@ export default function StaffBarang() {
   const [modalError, setModalError] = useState("");
   const [search, setSearch] = useState("");
   const [filterSatuan, setFilterSatuan] = useState("");
+  const [filterKategori, setFilterKategori] = useState("SEMUA");
 
   const fetchBarang = async () => {
     setLoading(true);
@@ -38,12 +39,51 @@ export default function StaffBarang() {
     fetchBarang();
   }, []);
 
-  const satuanList = [...new Set(barang.map((b) => b.satuan).filter(Boolean))].sort();
+  const satuanList = [
+    ...new Set(barang.map((b) => b.satuan).filter(Boolean)),
+  ].sort();
+
+  const getKategori = (nama = "", satuan = "") => {
+    const n = nama.toLowerCase();
+    const s = satuan.toLowerCase();
+    if (
+      s.includes("rim") ||
+      s.includes("lembar") ||
+      n.includes("kertas") ||
+      n.includes("folio") ||
+      n.includes("quarto")
+    ) {
+      return "KERTAS";
+    }
+    if (
+      n.includes("pena") ||
+      n.includes("pulpen") ||
+      n.includes("pensil") ||
+      n.includes("spidol") ||
+      n.includes("stabilo") ||
+      n.includes("penghapus") ||
+      n.includes("cutter") ||
+      n.includes("gunting")
+    ) {
+      return "ALAT_TULIS";
+    }
+    return "LAINNYA";
+  };
+
   const filteredBarang = barang.filter((b) => {
-    const matchSearch = !search || b.nama.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      !search || b.nama.toLowerCase().includes(search.toLowerCase());
     const matchSatuan = !filterSatuan || b.satuan === filterSatuan;
-    return matchSearch && matchSatuan;
+    const kategori = getKategori(b.nama, b.satuan);
+    const matchKategori = filterKategori === "SEMUA" || kategori === filterKategori;
+    return matchSearch && matchSatuan && matchKategori;
   });
+
+  const getStokClass = (stok) => {
+    if (stok <= 0) return "stok-badge stok-badge-danger";
+    if (stok <= 5) return "stok-badge stok-badge-warning";
+    return "stok-badge stok-badge-safe";
+  };
 
   const openDetail = (b) => {
     setDetailBarang(b);
@@ -96,23 +136,38 @@ export default function StaffBarang() {
       </p>
       {error && <p className="app-error">{error}</p>}
       {!loading && barang.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1rem" }}>
-          <input
-            type="text"
-            placeholder="Cari nama barang..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #2a2835", background: "#212030", color: "#f9f9f9", minWidth: "200px" }}
-          />
+        <div className="katalog-toolbar">
+          <div className="katalog-search-wrap">
+            <i className="fa-solid fa-magnifying-glass" />
+            <input
+              type="text"
+              placeholder="Cari nama barang..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="katalog-search"
+            />
+          </div>
           <select
             value={filterSatuan}
             onChange={(e) => setFilterSatuan(e.target.value)}
-            style={{ padding: "0.5rem 0.75rem", borderRadius: "8px", border: "1px solid #2a2835", background: "#212030", color: "#f9f9f9" }}
+            className="katalog-filter"
           >
             <option value="">Semua satuan</option>
             {satuanList.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
+          </select>
+          <select
+            value={filterKategori}
+            onChange={(e) => setFilterKategori(e.target.value)}
+            className="katalog-filter"
+          >
+            <option value="SEMUA">Semua kategori</option>
+            <option value="ALAT_TULIS">Alat Tulis</option>
+            <option value="KERTAS">Kertas</option>
+            <option value="LAINNYA">Lainnya</option>
           </select>
         </div>
       )}
@@ -144,9 +199,20 @@ export default function StaffBarang() {
               </div>
               <div className="barang-card-body">
                 <h3 className="barang-card-name">{b.nama}</h3>
-                <p className="barang-card-meta">
-                  {b.satuan} · Stok {b.stok}
-                </p>
+                <p className="barang-card-meta">{b.satuan}</p>
+                <div style={{ marginTop: "0.45rem", marginBottom: "0.65rem" }}>
+                  <span className={getStokClass(b.stok)}>Stok {b.stok}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-primary katalog-cta-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openDetail(b);
+                  }}
+                >
+                  + Ajukan
+                </button>
               </div>
             </div>
           ))}
@@ -155,21 +221,42 @@ export default function StaffBarang() {
 
       {detailBarang && (
         <div className="modal-overlay" onClick={() => setDetailBarang(null)}>
-          <div className="modal-box modal-detail-barang" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="modal-box modal-detail-barang"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2>Detail barang</h2>
             <div className="detail-barang-image">
               {detailBarang.gambarUrl ? (
                 <img src={detailBarang.gambarUrl} alt={detailBarang.nama} />
               ) : (
-                <span className="barang-card-placeholder"><i className="fa-solid fa-box" /></span>
+                <span className="barang-card-placeholder">
+                  <i className="fa-solid fa-box" />
+                </span>
               )}
             </div>
-            <p><strong>{detailBarang.nama}</strong></p>
-            <p><strong>Deskripsi:</strong><br /><span className="app-muted">{detailBarang.deskripsi || "Tidak ada deskripsi."}</span></p>
-            <p>Satuan: <strong>{detailBarang.satuan}</strong></p>
-            <p>Stok tersedia: <strong>{detailBarang.stok}</strong></p>
+            <p>
+              <strong>{detailBarang.nama}</strong>
+            </p>
+            <p>
+              <strong>Deskripsi:</strong>
+              <br />
+              <span className="app-muted">
+                {detailBarang.deskripsi || "Tidak ada deskripsi."}
+              </span>
+            </p>
+            <p>
+              Satuan: <strong>{detailBarang.satuan}</strong>
+            </p>
+            <p>
+              Stok tersedia: <strong>{detailBarang.stok}</strong>
+            </p>
             <form onSubmit={handleMinta}>
-              {modalError && <p className="app-error" style={{ marginBottom: "0.75rem" }}>{modalError}</p>}
+              {modalError && (
+                <p className="app-error" style={{ marginBottom: "0.75rem" }}>
+                  {modalError}
+                </p>
+              )}
               <label>Jumlah yang diminta</label>
               <input
                 type="number"
@@ -179,10 +266,18 @@ export default function StaffBarang() {
                 onChange={(e) => setJumlah(Number(e.target.value) || 0)}
               />
               <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setDetailBarang(null)}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setDetailBarang(null)}
+                >
                   Batal
                 </button>
-                <button type="submit" className="btn-primary" disabled={submitLoading || jumlah < 1}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={submitLoading || jumlah < 1}
+                >
                   {submitLoading ? "Mengirim..." : "Minta Barang"}
                 </button>
               </div>

@@ -5,10 +5,10 @@
 // Output: { success, message, data: { list } }
 // ============================================
 
-import prisma from '../config/database.js';
-import { successResponse, errorResponse } from '../utils/response.js';
+import prisma from "../config/database.js";
+import { successResponse, errorResponse } from "../utils/response.js";
 
-const VALID_JENIS = ['APPROVE', 'RESTOCK', 'PENYESUAIAN'];
+const VALID_JENIS = ["APPROVE", "RESTOCK", "PENYESUAIAN"];
 
 /**
  * GET /api/log-stok
@@ -34,15 +34,15 @@ export async function listLogStok(req, res) {
 
     const list = await prisma.logStok.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         barang: { select: { id: true, nama: true, satuan: true } },
         admin: { select: { id: true, nama: true } },
       },
     });
-    return successResponse(res, 'Daftar log stok', { list });
+    return successResponse(res, "Daftar log stok", { list });
   } catch (err) {
-    console.error('List log stok error:', err);
-    return errorResponse(res, 'Gagal mengambil log stok.', 500);
+    console.error("List log stok error:", err);
+    return errorResponse(res, "Gagal mengambil log stok.", 500);
   }
 }

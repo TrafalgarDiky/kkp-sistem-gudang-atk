@@ -1,5 +1,5 @@
-import prisma from '../config/database.js';
-import { successResponse, errorResponse } from '../utils/response.js';
+import prisma from "../config/database.js";
+import { successResponse, errorResponse } from "../utils/response.js";
 
 /** GET /api/permintaan — list permintaan (Staff: punya sendiri, Admin/Petugas: semua) */
 export async function listPermintaan(req, res) {
@@ -8,23 +8,29 @@ export async function listPermintaan(req, res) {
     const { status } = req.query;
 
     const where = {};
-    if (role === 'STAFF') where.pemintaId = userId;
+    if (role === "STAFF") where.pemintaId = userId;
     if (status) where.statusAdmin = status;
 
     const permintaan = await prisma.permintaan.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         peminta: { select: { id: true, nama: true, email: true } },
         approver: { select: { id: true, nama: true } },
-        items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
-        tugasPetugas: { include: { petugas: { select: { id: true, nama: true } } } },
+        items: {
+          include: {
+            barang: { select: { id: true, nama: true, satuan: true } },
+          },
+        },
+        tugasPetugas: {
+          include: { petugas: { select: { id: true, nama: true } } },
+        },
       },
     });
-    return successResponse(res, 'Daftar permintaan', { permintaan });
+    return successResponse(res, "Daftar permintaan", { permintaan });
   } catch (err) {
-    console.error('List permintaan error:', err);
-    return errorResponse(res, 'Gagal mengambil daftar permintaan.', 500);
+    console.error("List permintaan error:", err);
+    return errorResponse(res, "Gagal mengambil daftar permintaan.", 500);
   }
 }
 
@@ -37,15 +43,22 @@ export async function getPermintaanById(req, res) {
       include: {
         peminta: { select: { id: true, nama: true, email: true } },
         approver: { select: { id: true, nama: true } },
-        items: { include: { barang: { select: { id: true, nama: true, satuan: true, stok: true } } } },
+        items: {
+          include: {
+            barang: {
+              select: { id: true, nama: true, satuan: true, stok: true, gambarUrl: true },
+            },
+          },
+        },
         tugasPetugas: true,
       },
     });
-    if (!permintaan) return errorResponse(res, 'Permintaan tidak ditemukan', 404);
-    return successResponse(res, 'Detail permintaan', { permintaan });
+    if (!permintaan)
+      return errorResponse(res, "Permintaan tidak ditemukan", 404);
+    return successResponse(res, "Detail permintaan", { permintaan });
   } catch (err) {
-    console.error('Get permintaan error:', err);
-    return errorResponse(res, 'Gagal mengambil data permintaan.', 500);
+    console.error("Get permintaan error:", err);
+    return errorResponse(res, "Gagal mengambil data permintaan.", 500);
   }
 }
 
@@ -56,24 +69,40 @@ export async function createPermintaan(req, res) {
     const { items } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
-      return errorResponse(res, 'Minimal satu item barang (barangId + jumlah)', 400);
+      return errorResponse(
+        res,
+        "Minimal satu item barang (barangId + jumlah)",
+        400,
+      );
     }
 
     for (const it of items) {
       if (!it.barangId || !it.jumlah || it.jumlah < 1) {
-        return errorResponse(res, 'Setiap item harus punya barangId dan jumlah > 0', 400);
+        return errorResponse(
+          res,
+          "Setiap item harus punya barangId dan jumlah > 0",
+          400,
+        );
       }
     }
 
     const barangIds = items.map((i) => i.barangId);
-    const barangs = await prisma.barang.findMany({ where: { id: { in: barangIds } } });
+    const barangs = await prisma.barang.findMany({
+      where: { id: { in: barangIds } },
+    });
     if (barangs.length !== barangIds.length) {
-      return errorResponse(res, 'Ada barangId yang tidak valid', 400);
+      return errorResponse(res, "Ada barangId yang tidak valid", 400);
     }
 
     const permintaan = await prisma.$transaction(async (tx) => {
       const p = await tx.permintaan.create({
-        data: { pemintaId: userId },
+        // Auto-approve: langsung siap diambil petugas tanpa approval admin
+        data: {
+          pemintaId: userId,
+          statusAdmin: "DISETUJUI_ADMIN",
+          approvedAt: new Date(),
+          catatanAdmin: "Auto-approve sistem",
+        },
       });
       await tx.permintaanItem.createMany({
         data: items.map((it) => ({
@@ -83,20 +112,33 @@ export async function createPermintaan(req, res) {
         })),
       });
       await tx.tugasPetugas.create({
-        data: { permintaanId: p.id, statusTugas: 'MENUNGGU_ASSIGN', dibuatOtomatis: true },
+        data: {
+          permintaanId: p.id,
+          statusTugas: "MENUNGGU_ASSIGN",
+          dibuatOtomatis: true,
+        },
       });
       return tx.permintaan.findUnique({
         where: { id: p.id },
         include: {
-          items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
+          items: {
+            include: {
+              barang: { select: { id: true, nama: true, satuan: true } },
+            },
+          },
         },
       });
     });
 
-    return successResponse(res, 'Permintaan berhasil dibuat', { permintaan }, 201);
+    return successResponse(
+      res,
+      "Permintaan berhasil dibuat dan langsung masuk ke tugas petugas",
+      { permintaan },
+      201,
+    );
   } catch (err) {
-    console.error('Create permintaan error:', err);
-    return errorResponse(res, 'Gagal membuat permintaan.', 500);
+    console.error("Create permintaan error:", err);
+    return errorResponse(res, "Gagal membuat permintaan.", 500);
   }
 }
 
@@ -107,14 +149,19 @@ export async function approvePermintaan(req, res) {
     const { status, catatanAdmin } = req.body;
     const adminId = req.user.userId;
 
-    if (!['DISETUJUI_ADMIN', 'DITOLAK_ADMIN'].includes(status)) {
-      return errorResponse(res, 'Status harus DISETUJUI_ADMIN atau DITOLAK_ADMIN', 400);
+    if (!["DISETUJUI_ADMIN", "DITOLAK_ADMIN"].includes(status)) {
+      return errorResponse(
+        res,
+        "Status harus DISETUJUI_ADMIN atau DITOLAK_ADMIN",
+        400,
+      );
     }
 
     const permintaan = await prisma.permintaan.findUnique({ where: { id } });
-    if (!permintaan) return errorResponse(res, 'Permintaan tidak ditemukan', 404);
-    if (permintaan.statusAdmin !== 'MENUNGGU_ADMIN') {
-      return errorResponse(res, 'Permintaan ini sudah diproses', 400);
+    if (!permintaan)
+      return errorResponse(res, "Permintaan tidak ditemukan", 404);
+    if (permintaan.statusAdmin !== "MENUNGGU_ADMIN") {
+      return errorResponse(res, "Permintaan ini sudah diproses", 400);
     }
 
     const updated = await prisma.permintaan.update({
@@ -128,40 +175,112 @@ export async function approvePermintaan(req, res) {
       include: {
         peminta: { select: { id: true, nama: true, email: true } },
         approver: { select: { id: true, nama: true } },
-        items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
-        tugasPetugas: { include: { petugas: { select: { id: true, nama: true } } } },
+        items: {
+          include: {
+            barang: { select: { id: true, nama: true, satuan: true } },
+          },
+        },
+        tugasPetugas: {
+          include: { petugas: { select: { id: true, nama: true } } },
+        },
       },
     });
 
-    if (status === 'DITOLAK_ADMIN') {
+    if (status === "DITOLAK_ADMIN") {
       try {
         await prisma.tugasPetugas.updateMany({
           where: { permintaanId: id },
-          data: { statusTugas: 'DITOLAK' },
+          data: { statusTugas: "DITOLAK" },
         });
       } catch (errTugas) {
-        console.warn('Update tugas ke DITOLAK gagal:', errTugas?.message);
+        console.warn("Update tugas ke DITOLAK gagal:", errTugas?.message);
       }
     }
-    if (status === 'DISETUJUI_ADMIN') {
+    if (status === "DISETUJUI_ADMIN") {
       try {
         await prisma.tugasPetugas.updateMany({
           where: { permintaanId: id },
-          data: { statusTugas: 'MENUNGGU_ASSIGN' },
+          data: { statusTugas: "MENUNGGU_ASSIGN" },
         });
       } catch (errTugas) {
-        console.warn('Update tugas ke MENUNGGU_ASSIGN gagal:', errTugas?.message);
+        console.warn(
+          "Update tugas ke MENUNGGU_ASSIGN gagal:",
+          errTugas?.message,
+        );
       }
     }
 
     return successResponse(
       res,
-      status === 'DISETUJUI_ADMIN' ? 'Permintaan disetujui' : 'Permintaan ditolak',
-      { permintaan: updated }
+      status === "DISETUJUI_ADMIN"
+        ? "Permintaan disetujui"
+        : "Permintaan ditolak",
+      { permintaan: updated },
     );
   } catch (err) {
-    console.error('Approve permintaan error:', err);
-    return errorResponse(res, 'Gagal memproses permintaan.', 500);
+    console.error("Approve permintaan error:", err);
+    return errorResponse(res, "Gagal memproses permintaan.", 500);
+  }
+}
+
+/** PATCH /api/permintaan/:id/batal — Staff batalkan permintaan sendiri (sebelum diproses petugas) */
+export async function batalPermintaan(req, res) {
+  try {
+    const { id } = req.params;
+    const staffId = req.user.userId;
+
+    const [permintaan, staff] = await Promise.all([
+      prisma.permintaan.findUnique({
+        where: { id },
+        include: { tugasPetugas: true },
+      }),
+      prisma.user.findUnique({ where: { id: staffId }, select: { nama: true } }),
+    ]);
+
+    if (!permintaan) return errorResponse(res, "Permintaan tidak ditemukan", 404);
+    if (permintaan.pemintaId !== staffId) {
+      return errorResponse(res, "Anda hanya bisa membatalkan permintaan milik sendiri", 403);
+    }
+    if (["SELESAI", "DITOLAK_ADMIN"].includes(permintaan.statusAdmin)) {
+      return errorResponse(res, "Permintaan ini tidak bisa dibatalkan", 400);
+    }
+
+    const tugasAktif = permintaan.tugasPetugas?.[0] || null;
+    if (
+      tugasAktif?.petugasId ||
+      ["ON_DELIVERY", "DALAM_PROSES", "SELESAI", "DELIVERED"].includes(tugasAktif?.statusTugas)
+    ) {
+      return errorResponse(res, "Permintaan sudah diproses petugas dan tidak bisa dibatalkan", 400);
+    }
+
+    const namaStaff = staff?.nama || "Tanpa Nama";
+    const catatanBatal = `Dibatalkan oleh staff ${namaStaff}`;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.tugasPetugas.updateMany({
+        where: { permintaanId: id },
+        data: { statusTugas: "DITOLAK" },
+      });
+      return tx.permintaan.update({
+        where: { id },
+        data: {
+          statusAdmin: "DITOLAK_ADMIN",
+          catatanAdmin: catatanBatal,
+          approvedAt: new Date(),
+        },
+        include: {
+          peminta: { select: { id: true, nama: true, email: true } },
+          approver: { select: { id: true, nama: true } },
+          items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
+          tugasPetugas: { include: { petugas: { select: { id: true, nama: true } } } },
+        },
+      });
+    });
+
+    return successResponse(res, "Permintaan berhasil dibatalkan", { permintaan: updated });
+  } catch (err) {
+    console.error("Batal permintaan error:", err);
+    return errorResponse(res, "Gagal membatalkan permintaan.", 500);
   }
 }
 
@@ -173,42 +292,54 @@ export async function ambilTugas(req, res) {
 
     const tugas = await prisma.tugasPetugas.findUnique({
       where: { id: tugasId },
-      include: { permintaan: { include: { items: { include: { barang: true } } } } },
+      include: {
+        permintaan: { include: { items: { include: { barang: true } } } },
+      },
     });
-    if (!tugas) return errorResponse(res, 'Tugas tidak ditemukan', 404);
-    if (tugas.permintaan?.statusAdmin !== 'DISETUJUI_ADMIN') {
-      return errorResponse(res, 'Permintaan belum disetujui atau sudah selesai/ditolak', 400);
+    if (!tugas) return errorResponse(res, "Tugas tidak ditemukan", 404);
+    if (["DITOLAK_ADMIN", "SELESAI"].includes(tugas.permintaan?.statusAdmin)) {
+      return errorResponse(
+        res,
+        "Permintaan sudah ditolak atau sudah selesai",
+        400,
+      );
     }
-    if (tugas.statusTugas === 'DITOLAK') {
-      return errorResponse(res, 'Permintaan ditolak admin', 400);
+    if (tugas.statusTugas === "DITOLAK") {
+      return errorResponse(res, "Permintaan ditolak admin", 400);
     }
-    if (tugas.statusTugas === 'SELESAI' || tugas.statusTugas === 'DELIVERED') {
-      return errorResponse(res, 'Tugas sudah selesai', 400);
+    if (tugas.statusTugas === "SELESAI" || tugas.statusTugas === "DELIVERED") {
+      return errorResponse(res, "Tugas sudah selesai", 400);
     }
     if (tugas.petugasId && tugas.petugasId !== petugasId) {
-      return errorResponse(res, 'Tugas sedang diambil petugas lain', 400);
+      return errorResponse(res, "Tugas sedang diambil petugas lain", 400);
     }
     if (tugas.petugasId === petugasId) {
-      return errorResponse(res, 'Anda sudah mengambil tugas ini', 400);
+      return errorResponse(res, "Anda sudah mengambil tugas ini", 400);
     }
 
     const updated = await prisma.tugasPetugas.update({
       where: { id: tugasId },
-      data: { petugasId, statusTugas: 'ON_DELIVERY' },
+      data: { petugasId, statusTugas: "ON_DELIVERY" },
       include: {
         permintaan: {
           include: {
             peminta: { select: { id: true, nama: true, email: true } },
-            items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
+            items: {
+              include: {
+                barang: {
+                  select: { id: true, nama: true, satuan: true, gambarUrl: true },
+                },
+              },
+            },
           },
         },
         petugas: { select: { id: true, nama: true } },
       },
     });
-    return successResponse(res, 'Tugas diambil', { tugas: updated });
+    return successResponse(res, "Tugas diambil", { tugas: updated });
   } catch (err) {
-    console.error('Ambil tugas error:', err);
-    return errorResponse(res, 'Gagal mengambil tugas.', 500);
+    console.error("Ambil tugas error:", err);
+    return errorResponse(res, "Gagal mengambil tugas.", 500);
   }
 }
 
@@ -222,31 +353,41 @@ export async function lepasTugas(req, res) {
       where: { id: tugasId },
       include: { permintaan: true },
     });
-    if (!tugas) return errorResponse(res, 'Tugas tidak ditemukan', 404);
+    if (!tugas) return errorResponse(res, "Tugas tidak ditemukan", 404);
     if (tugas.petugasId !== petugasId) {
-      return errorResponse(res, 'Hanya petugas yang mengambil tugas yang bisa melepas', 400);
+      return errorResponse(
+        res,
+        "Hanya petugas yang mengambil tugas yang bisa melepas",
+        400,
+      );
     }
-    if (tugas.statusTugas === 'SELESAI' || tugas.statusTugas === 'DELIVERED') {
-      return errorResponse(res, 'Tugas sudah selesai', 400);
+    if (tugas.statusTugas === "SELESAI" || tugas.statusTugas === "DELIVERED") {
+      return errorResponse(res, "Tugas sudah selesai", 400);
     }
 
     const updated = await prisma.tugasPetugas.update({
       where: { id: tugasId },
-      data: { petugasId: null, statusTugas: 'MENUNGGU_ASSIGN' },
+      data: { petugasId: null, statusTugas: "MENUNGGU_ASSIGN" },
       include: {
         permintaan: {
           include: {
             peminta: { select: { id: true, nama: true, email: true } },
-            items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
+            items: {
+              include: {
+                barang: {
+                  select: { id: true, nama: true, satuan: true, gambarUrl: true },
+                },
+              },
+            },
           },
         },
         petugas: { select: { id: true, nama: true } },
       },
     });
-    return successResponse(res, 'Tugas dilepas', { tugas: updated });
+    return successResponse(res, "Tugas dilepas", { tugas: updated });
   } catch (err) {
-    console.error('Lepas tugas error:', err);
-    return errorResponse(res, 'Gagal melepas tugas.', 500);
+    console.error("Lepas tugas error:", err);
+    return errorResponse(res, "Gagal melepas tugas.", 500);
   }
 }
 
@@ -260,22 +401,26 @@ export async function listTugasPetugas(req, res) {
 
     const tugas = await prisma.tugasPetugas.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         permintaan: {
           include: {
             peminta: { select: { id: true, nama: true, email: true } },
-            items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
+            items: {
+              include: {
+                barang: { select: { id: true, nama: true, satuan: true } },
+              },
+            },
           },
         },
         petugas: { select: { id: true, nama: true } },
         assignedByAdmin: { select: { id: true, nama: true } },
       },
     });
-    return successResponse(res, 'Daftar tugas petugas', { tugas });
+    return successResponse(res, "Daftar tugas petugas", { tugas });
   } catch (err) {
-    console.error('List tugas error:', err);
-    return errorResponse(res, 'Gagal mengambil daftar tugas.', 500);
+    console.error("List tugas error:", err);
+    return errorResponse(res, "Gagal mengambil daftar tugas.", 500);
   }
 }
 
@@ -286,27 +431,48 @@ export async function updateTugasStatus(req, res) {
     const { statusTugas } = req.body;
     const petugasId = req.user.userId;
 
-    if (!['DALAM_PROSES', 'SELESAI', 'ON_DELIVERY', 'DELIVERED'].includes(statusTugas)) {
-      return errorResponse(res, 'statusTugas harus DALAM_PROSES, SELESAI, ON_DELIVERY, atau DELIVERED', 400);
+    if (
+      !["DALAM_PROSES", "SELESAI", "ON_DELIVERY", "DELIVERED"].includes(
+        statusTugas,
+      )
+    ) {
+      return errorResponse(
+        res,
+        "statusTugas harus DALAM_PROSES, SELESAI, ON_DELIVERY, atau DELIVERED",
+        400,
+      );
     }
 
     const tugas = await prisma.tugasPetugas.findUnique({
       where: { id: tugasId },
       include: { permintaan: { include: { items: true } } },
     });
-    if (!tugas) return errorResponse(res, 'Tugas tidak ditemukan', 404);
-    if (tugas.statusTugas === 'DITOLAK') {
-      return errorResponse(res, 'Permintaan ini ditolak oleh admin, tidak dapat diproses', 400);
+    if (!tugas) return errorResponse(res, "Tugas tidak ditemukan", 404);
+    if (tugas.statusTugas === "DITOLAK") {
+      return errorResponse(
+        res,
+        "Permintaan ini ditolak oleh admin, tidak dapat diproses",
+        400,
+      );
     }
-    if (['SELESAI', 'DELIVERED'].includes(tugas.statusTugas)) {
-      return errorResponse(res, 'Tugas sudah selesai', 400);
+    if (["SELESAI", "DELIVERED"].includes(tugas.statusTugas)) {
+      return errorResponse(res, "Tugas sudah selesai", 400);
     }
-    const isSelesai = statusTugas === 'SELESAI' || statusTugas === 'DELIVERED';
+    const isSelesai = statusTugas === "SELESAI" || statusTugas === "DELIVERED";
     if (isSelesai && tugas.petugasId !== petugasId) {
-      return errorResponse(res, 'Hanya petugas yang mengambil tugas yang bisa menandai selesai', 400);
+      return errorResponse(
+        res,
+        "Hanya petugas yang mengambil tugas yang bisa menandai selesai",
+        400,
+      );
     }
 
-    const statusToSave = statusTugas === 'DELIVERED' ? 'DELIVERED' : statusTugas === 'SELESAI' ? 'SELESAI' : statusTugas;
+    const statusToSave =
+      statusTugas === "DELIVERED"
+        ? "DELIVERED"
+        : statusTugas === "SELESAI"
+          ? "SELESAI"
+          : statusTugas;
 
     if (isSelesai) {
       const permintaanId = tugas.permintaanId;
@@ -321,7 +487,7 @@ export async function updateTugasStatus(req, res) {
             data: {
               barangId: item.barangId,
               perubahan: -item.jumlah,
-              jenis: 'APPROVE',
+              jenis: "APPROVE",
               referensiId: permintaanId,
               adminId: null,
             },
@@ -333,7 +499,7 @@ export async function updateTugasStatus(req, res) {
         });
         await tx.permintaan.update({
           where: { id: permintaanId },
-          data: { statusAdmin: 'SELESAI' },
+          data: { statusAdmin: "SELESAI" },
         });
       });
     } else {
@@ -349,18 +515,24 @@ export async function updateTugasStatus(req, res) {
         permintaan: {
           include: {
             peminta: { select: { id: true, nama: true, email: true } },
-            items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
+            items: {
+              include: {
+                barang: { select: { id: true, nama: true, satuan: true } },
+              },
+            },
           },
         },
       },
     });
     return successResponse(
       res,
-      statusTugas === 'SELESAI' ? 'Tugas ditandai selesai, stok telah dikurangi' : 'Status tugas diupdate',
-      { tugas: updated }
+      statusTugas === "SELESAI"
+        ? "Tugas ditandai selesai, stok telah dikurangi"
+        : "Status tugas diupdate",
+      { tugas: updated },
     );
   } catch (err) {
-    console.error('Update tugas error:', err);
-    return errorResponse(res, 'Gagal mengupdate tugas.', 500);
+    console.error("Update tugas error:", err);
+    return errorResponse(res, "Gagal mengupdate tugas.", 500);
   }
 }

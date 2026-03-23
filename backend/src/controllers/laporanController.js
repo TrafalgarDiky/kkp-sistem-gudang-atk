@@ -5,8 +5,8 @@
 // Output: { success, message, data }
 // ============================================
 
-import prisma from '../config/database.js';
-import { successResponse, errorResponse } from '../utils/response.js';
+import prisma from "../config/database.js";
+import { successResponse, errorResponse } from "../utils/response.js";
 
 /**
  * GET /api/laporan
@@ -16,7 +16,7 @@ import { successResponse, errorResponse } from '../utils/response.js';
 export async function getLaporan(req, res) {
   try {
     const { dari, sampai } = req.query;
-    const wherePermintaan = { statusAdmin: 'SELESAI' };
+    const wherePermintaan = { statusAdmin: "SELESAI" };
     if (dari || sampai) {
       wherePermintaan.updatedAt = {};
       if (dari) wherePermintaan.updatedAt.gte = new Date(dari);
@@ -29,10 +29,12 @@ export async function getLaporan(req, res) {
 
     const permintaan = await prisma.permintaan.findMany({
       where: wherePermintaan,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { updatedAt: "desc" },
       include: {
         peminta: { select: { nama: true } },
-        items: { include: { barang: { select: { nama: true, satuan: true } } } },
+        items: {
+          include: { barang: { select: { nama: true, satuan: true } } },
+        },
       },
     });
 
@@ -44,23 +46,25 @@ export async function getLaporan(req, res) {
         if (!pemakaianByBarang[key]) {
           pemakaianByBarang[key] = {
             barangId: item.barangId,
-            namaBarang: item.barang?.nama ?? '-',
-            satuan: item.barang?.satuan ?? '-',
+            namaBarang: item.barang?.nama ?? "-",
+            satuan: item.barang?.satuan ?? "-",
             totalQty: 0,
           };
         }
         pemakaianByBarang[key].totalQty += item.jumlah;
       }
     }
-    const pemakaian = Object.values(pemakaianByBarang).sort((a, b) => b.totalQty - a.totalQty);
+    const pemakaian = Object.values(pemakaianByBarang).sort(
+      (a, b) => b.totalQty - a.totalQty,
+    );
 
-    return successResponse(res, 'Laporan rekap', {
+    return successResponse(res, "Laporan rekap", {
       permintaan,
       pemakaian,
       totalPermintaan: permintaan.length,
     });
   } catch (err) {
-    console.error('Laporan error:', err);
-    return errorResponse(res, 'Gagal mengambil laporan.', 500);
+    console.error("Laporan error:", err);
+    return errorResponse(res, "Gagal mengambil laporan.", 500);
   }
 }
