@@ -1,6 +1,26 @@
 import prisma from '../config/database.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 
+function formatKodeBarang(nomorUrut) {
+  return `A-${String(nomorUrut).padStart(4, '0')}`;
+}
+
+async function generateNextKodeBarang(tx) {
+  const lastBarang = await tx.barang.findFirst({
+    where: { kode: { not: null } },
+    orderBy: { kode: 'desc' },
+    select: { kode: true },
+  });
+
+  if (!lastBarang?.kode) {
+    return formatKodeBarang(1);
+  }
+
+  const match = lastBarang.kode.match(/^A-(\d+)$/);
+  const lastNumber = match ? Number(match[1]) : 0;
+  return formatKodeBarang(lastNumber + 1);
+}
+
 /**
  * GET /api/barang
  * Tujuan: Mengambil daftar semua barang ATK.
@@ -13,6 +33,7 @@ export async function listBarang(req, res) {
             orderBy: { nama: 'asc' },
             select: {
                 id: true,
+                kode: true,
                 nama: true,
                 deskripsi: true,
                 satuan: true,
@@ -46,27 +67,43 @@ export async function createBarang(req, res) {
       return errorResponse(res, 'Stok barang tidak boleh negatif', 400);
     }
 
-    const barang = await prisma.barang.create({
-      data: {
-        nama: nama.trim(),
-        satuan: satuan.trim(),
-        stok: Number(stok) || 0,
-        stokMinimum: stokMinimum != null && stokMinimum !== '' ? Number(stokMinimum) : null,
-        deskripsi: deskripsi?.trim() || null,
-        gambarUrl: gambarUrl?.trim() || null,
-      },
-      select: {
-        id: true,
-        nama: true,
-        deskripsi: true,
-        satuan: true,
-        stok: true,
-        stokMinimum: true,
-        gambarUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    let barang = null;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        barang = await prisma.$transaction(async (tx) => {
+          const kode = await generateNextKodeBarang(tx);
+          return tx.barang.create({
+            data: {
+              kode,
+              nama: nama.trim(),
+              satuan: satuan.trim(),
+              stok: Number(stok) || 0,
+              stokMinimum: stokMinimum != null && stokMinimum !== '' ? Number(stokMinimum) : null,
+              deskripsi: deskripsi?.trim() || null,
+              gambarUrl: gambarUrl?.trim() || null,
+            },
+            select: {
+              id: true,
+              kode: true,
+              nama: true,
+              deskripsi: true,
+              satuan: true,
+              stok: true,
+              stokMinimum: true,
+              gambarUrl: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          });
+        });
+        break;
+      } catch (error) {
+        const isUniqueKodeError = error?.code === 'P2002' && Array.isArray(error?.meta?.target) && error.meta.target.includes('kode');
+        if (!isUniqueKodeError || attempt === 3) {
+          throw error;
+        }
+      }
+    }
 
     return successResponse(res, 'Barang berhasil dibuat', { barang }, 201);
   } catch (err) {
@@ -83,6 +120,7 @@ export async function getBarangById(req, res) {
       where: { id },
       select: {
         id: true,
+        kode: true,
         nama: true,
         deskripsi: true,
         satuan: true,
@@ -107,7 +145,7 @@ export async function getBarangById(req, res) {
 export async function updateBarang(req, res) {
   try {
     const { id } = req.params;
-    const { nama, satuan, stok, stokMinimum, deskripsi, gambarUrl } = req.body;
+    const { kode, nama, satuan, stok, stokMinimum, deskripsi, gambarUrl } = req.body;
 
     const existing = await prisma.barang.findUnique({ where: { id } });
     if (!existing) {
@@ -115,6 +153,16 @@ export async function updateBarang(req, res) {
     }
 
     const data = {};
+    if (kode !== undefined) {
+      const raw = typeof kode === 'string' ? kode.trim() : '';
+      if (!raw) {
+        return errorResponse(res, 'Kode barang tidak boleh kosong', 400);
+      }
+      if (!/^A-\d{4}$/.test(raw)) {
+        return errorResponse(res, 'Format kode barang harus seperti A-0001', 400);
+      }
+      data.kode = raw;
+    }
     if (nama !== undefined) data.nama = nama.trim();
     if (satuan !== undefined) data.satuan = satuan.trim();
     if (stok !== undefined) {
@@ -132,6 +180,7 @@ export async function updateBarang(req, res) {
       data,
       select: {
         id: true,
+        kode: true,
         nama: true,
         deskripsi: true,
         satuan: true,
@@ -145,6 +194,10 @@ export async function updateBarang(req, res) {
     return successResponse(res, 'Barang berhasil diupdate', { barang });
   } catch (err) {
     console.error('Update barang error:', err);
+    const isUniqueKodeError = err?.code === 'P2002' && Array.isArray(err?.meta?.target) && err.meta.target.includes('kode');
+    if (isUniqueKodeError) {
+      return errorResponse(res, 'Kode barang sudah dipakai barang lain', 400);
+    }
     return errorResponse(res, 'Gagal mengupdate barang.', 500);
   }
 }

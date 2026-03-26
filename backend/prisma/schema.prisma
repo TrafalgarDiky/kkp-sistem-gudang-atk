@@ -50,6 +50,7 @@ model User {
 // ============================================
 model Barang {
   id           String   @id @default(uuid())
+  kode         String?  @unique // Kode barang human-readable (contoh: A-0001)
   nama         String
   deskripsi    String?
   satuan       String
@@ -71,6 +72,7 @@ model Barang {
 // ============================================
 model Permintaan {
   id               String      @id @default(uuid())
+  nomor            Int?        // Nomor urut permintaan (untuk laporan/keterangan)
   pemintaId        String      @map("peminta_id")
   statusAdmin      StatusAdmin @default(MENUNGGU_ADMIN) @map("status_admin")
   approvedBy       String?     @map("approved_by")
@@ -156,6 +158,7 @@ model LogStok {
   perubahan    Int       // + atau -
   jenis        JenisLogStok @map("jenis")
   referensiId  String?   @map("referensi_id") // id permintaan / stok_masuk
+  keterangan   String?   // Keterangan sumber/alasan perubahan stok
   adminId      String?   @map("admin_id")
   createdAt    DateTime  @default(now()) @map("created_at")
 

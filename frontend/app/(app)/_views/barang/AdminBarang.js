@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
 
-const initialForm = { nama: "", satuan: "", stok: "", stokMinimum: "", deskripsi: "", gambarUrl: "" };
+const initialForm = { kode: "", nama: "", satuan: "", stok: "", stokMinimum: "", deskripsi: "", gambarUrl: "" };
 
 export default function AdminBarang() {
   const [barang, setBarang] = useState([]);
@@ -51,6 +51,7 @@ export default function AdminBarang() {
   const openEdit = (b) => {
     setEditingId(b.id);
     setForm({
+      kode: b.kode || "",
       nama: b.nama || "",
       satuan: b.satuan || "",
       stok: String(b.stok ?? ""),
@@ -112,6 +113,7 @@ export default function AdminBarang() {
         : apiUrl("/api/barang");
       const method = editingId ? "PATCH" : "POST";
       const body = {
+        ...(editingId ? { kode: form.kode.trim() } : {}),
         nama: form.nama.trim(),
         satuan: form.satuan.trim(),
         stok: Number(form.stok) || 0,
@@ -179,6 +181,7 @@ export default function AdminBarang() {
             <thead>
               <tr>
                 <th>No</th>
+                <th>Kode</th>
                 <th>Nama</th>
                 <th>Satuan</th>
                 <th>Stok</th>
@@ -191,6 +194,7 @@ export default function AdminBarang() {
               {barang.map((b, i) => (
                 <tr key={b.id}>
                   <td>{i + 1}</td>
+                  <td>{b.kode || "-"}</td>
                   <td>{b.nama}</td>
                   <td>{b.satuan}</td>
                   <td>{b.stok}</td>
@@ -243,6 +247,15 @@ export default function AdminBarang() {
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <h2>{editingId ? "Edit Barang" : "Tambah Barang"}</h2>
             <form onSubmit={handleSubmit}>
+              <label>Kode barang {editingId ? <span className="required">*</span> : <span className="app-muted">(otomatis)</span>}</label>
+              <input
+                type="text"
+                value={form.kode}
+                onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value }))}
+                placeholder={editingId ? "A-0001" : "Otomatis dibuat sistem"}
+                disabled={!editingId}
+                required={!!editingId}
+              />
               <label>Nama <span className="required">*</span></label>
               <input
                 type="text"
