@@ -4,7 +4,7 @@
  * Katalog ATK — Staff: card barang, klik gambar → detail (deskripsi, stok) + input jumlah → Minta Barang.
  */
 import { useEffect, useState } from "react";
-import { apiUrl, getAuthHeaders } from "@/lib/api";
+import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
 
 export default function StaffBarang() {
   const [barang, setBarang] = useState([]);
@@ -190,7 +190,7 @@ export default function StaffBarang() {
             >
               <div className="barang-card-image">
                 {b.gambarUrl ? (
-                  <img src={b.gambarUrl} alt={b.nama} />
+                  <img src={resolveBarangImageSrc(b.gambarUrl)} alt={b.nama} />
                 ) : (
                   <span className="barang-card-placeholder">
                     <i className="fa-solid fa-box" />
@@ -228,7 +228,7 @@ export default function StaffBarang() {
             <h2>Detail barang</h2>
             <div className="detail-barang-image">
               {detailBarang.gambarUrl ? (
-                <img src={detailBarang.gambarUrl} alt={detailBarang.nama} />
+                <img src={resolveBarangImageSrc(detailBarang.gambarUrl)} alt={detailBarang.nama} />
               ) : (
                 <span className="barang-card-placeholder">
                   <i className="fa-solid fa-box" />

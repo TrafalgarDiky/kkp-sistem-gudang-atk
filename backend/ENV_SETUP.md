@@ -26,12 +26,16 @@ PORT=3001
 # Frontend URL (untuk CORS)
 FRONTEND_URL="http://localhost:3000"
 
-# URL dasar backend (untuk link gambar hasil upload; opsional)
-# Jika tidak diisi, dipakai http://localhost:PORT
-# BASE_URL="http://localhost:3001"
-
 # Environment
 NODE_ENV=development
+
+# --- Opsional: kirim email reset password (lupa password) ---
+# Tanpa ini, di development tautan reset dicetak di terminal backend.
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=email.kamu@gmail.com
+# SMTP_PASS=app-password-gmail
+# SMTP_FROM="Gudang ATK <email.kamu@gmail.com>"
 ```
 
 3. **Sesuaikan nilai sesuai setup kamu:**
@@ -47,7 +51,22 @@ NODE_ENV=development
    
    - **PORT**: Port untuk backend API (default: 3001)
    
-   - **FRONTEND_URL**: URL frontend Next.js (default: http://localhost:3000)
+   - **FRONTEND_URL**: URL frontend Next.js (default: http://localhost:3000). Dipakai juga untuk **tautan reset password** di email.
+
+## Gambar katalog di banyak device (HP / laptop lain)
+
+- Di database, `gambar_url` sebaiknya **path relatif** saja: `/uploads/namafile.jpg` (bukan `http://localhost:3001/...`).
+- **Frontend** (`frontend/.env`): set **`NEXT_PUBLIC_API_URL`** ke alamat backend yang bisa dijangkau device itu, misalnya `http://192.168.1.50:3001` (IP komputer server).
+- **Backend** (`.env`): **`FRONTEND_URL`** = URL yang dipakai buka web di browser device itu (mis. `http://192.168.1.50:3000`).
+- **Folder `backend/uploads/`** harus ada di **mesin yang menjalankan backend** (satu server untuk semua client).
+- Data lama masih berisi `http://localhost:3001/uploads/...`? Jalankan sekali: **`npm run normalize:gambar-url`** di folder backend.
+
+## Lupa password & SMTP (email)
+
+Fitur **Lupa password** mengirim tautan ke `FRONTEND_URL/reset-password?token=...`.
+
+- **Development tanpa SMTP:** setelah `POST /api/auth/forgot-password`, **buka terminal backend** — tautan lengkap dicetak di log.
+- **Production / uji email nyata:** isi `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (Gmail: pakai [App Password](https://support.google.com/accounts/answer/185833), bukan password akun biasa).
 
 ## Contoh Setup PostgreSQL Lokal
 

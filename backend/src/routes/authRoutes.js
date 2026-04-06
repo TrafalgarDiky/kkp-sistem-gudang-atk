@@ -5,7 +5,16 @@
 // ============================================
 
 import { Router } from 'express';
-import { register, login, verifyUser, listPendingUsers, listUsers, updateUser } from '../controllers/authController.js';
+import {
+  register,
+  login,
+  verifyUser,
+  listPendingUsers,
+  listUsers,
+  updateUser,
+  forgotPassword,
+  resetPasswordWithToken,
+} from '../controllers/authController.js';
 import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 
 const router = Router();
@@ -15,6 +24,9 @@ router.post('/register', register);
 
 // POST /api/auth/login
 router.post('/login', login);
+
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPasswordWithToken);
 
 // --- Route yang butuh login + role ADMIN ---
 router.get('/pending', requireAuth, requireRole(['ADMIN']), listPendingUsers);

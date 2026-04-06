@@ -4,7 +4,7 @@
  * Tugas Aktif — Petugas: daftar tugas pengantaran, Mulai Antar, Detail Tugas, Konfirmasi Selesai/Serah terima.
  */
 import { useEffect, useState } from "react";
-import { apiUrl, getApiUrl, getAuthHeaders } from "@/lib/api";
+import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
 
 const statusTugasLabel = {
   MENUNGGU_ASSIGN: "Menunggu",
@@ -14,14 +14,6 @@ const statusTugasLabel = {
   SELESAI: "Selesai",
   DITOLAK: "Ditolak",
 };
-
-function resolveBarangImageSrc(gambarUrl) {
-  if (!gambarUrl) return null;
-  if (/^https?:\/\//i.test(gambarUrl)) return gambarUrl;
-  const base = getApiUrl().replace(/\/$/, "");
-  const path = gambarUrl.startsWith("/") ? gambarUrl : `/${gambarUrl}`;
-  return `${base}${path}`;
-}
 
 export default function PetugasTugas() {
   const [tugas, setTugas] = useState([]);

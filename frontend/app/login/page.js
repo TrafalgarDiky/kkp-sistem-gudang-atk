@@ -237,7 +237,7 @@ export default function LoginPage() {
                 <i className={showLoginPw ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
               </button>
             </div>
-            <Link href="#" className="forgot">
+            <Link href="/forgot-password" className="forgot">
               Lupa password?
             </Link>
             {loginError && <p className="error-msg">{loginError}</p>}

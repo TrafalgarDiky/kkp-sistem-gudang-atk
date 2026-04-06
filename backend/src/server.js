@@ -4,11 +4,14 @@
 // Tujuan: Menjalankan web server API
 // ============================================
 
+// HARUS paling atas: isi process.env dari backend/.env (path tetap, tidak tergantung cwd)
+import './loadEnv.js';
+
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import barangRoutes from './routes/barangRoutes.js';
 import permintaanRoutes from './routes/permintaanRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
@@ -16,15 +19,12 @@ import restockRoutes from './routes/restockRoutes.js';
 import logStokRoutes from './routes/logStokRoutes.js';
 import laporanRoutes from './routes/laporanRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
-
-dotenv.config();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Import routes
 import authRoutes from './routes/authRoutes.js';
 import { requireAuth, requireRole } from './middleware/authMiddleware.js';
 import { listPendingUsers, verifyUser } from './controllers/authController.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.resolve(__dirname, '..', 'uploads');
 
 // ============================================
 // SETUP EXPRESS APP
@@ -91,8 +91,19 @@ app.use('/api/log-stok', logStokRoutes);
 app.use('/api/laporan', laporanRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Upload gambar (ADMIN) — file disimpan di backend/uploads/, dilayani di GET /uploads/...
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Upload gambar — GET /uploads/namafile (folder: backend/uploads, BUKAN frontend)
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.warn('[server] Folder uploads dibuat:', uploadsDir);
+} else {
+  try {
+    const n = fs.readdirSync(uploadsDir).filter((f) => !f.startsWith('.')).length;
+    console.log(`📂 Uploads (${n} file): ${uploadsDir}`);
+  } catch {
+    console.log('📂 Uploads:', uploadsDir);
+  }
+}
+app.use('/uploads', express.static(uploadsDir));
 app.use('/api/upload', uploadRoutes);
 
 // Daftar route auth (untuk debug — bisa dihapus nanti)
@@ -101,6 +112,8 @@ app.get('/api/debug/routes', (req, res) => {
     auth: [
       'POST /api/auth/register',
       'POST /api/auth/login',
+      'POST /api/auth/forgot-password',
+      'POST /api/auth/reset-password',
       'GET  /api/auth/pending (Auth: Bearer token, role ADMIN)',
       'PATCH /api/auth/users/:id/verify (Auth: Bearer token, role ADMIN)'
     ]
@@ -123,9 +136,18 @@ app.use((err, req, res, next) => {
 // 404 HANDLER (Route tidak ditemukan)
 // ============================================
 app.use((req, res) => {
+  if (req.path.startsWith('/uploads/')) {
+    return res.status(404).json({
+      success: false,
+      message:
+        'File gambar tidak ada di server. Salin file ke folder uploads backend dengan nama persis seperti di URL (cek kolom gambar_url di database).',
+      uploadsFolder: uploadsDir,
+      requestedPath: req.path,
+    });
+  }
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: 'Route not found',
   });
 });
 

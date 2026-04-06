@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:push": "prisma db push",
-    "prisma:seed": "node prisma/seed.js"
+    "prisma:seed": "node prisma/seed.js",
+    "normalize:gambar-url": "node prisma/normalize-gambar-url.js"
   },
   "keywords": [
     "api",
@@ -33,6 +34,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
+    "nodemailer": "^6.10.1",
     "pg": "^8.18.0"
   },
   "devDependencies": {

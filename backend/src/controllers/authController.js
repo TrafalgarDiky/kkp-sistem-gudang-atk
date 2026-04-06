@@ -5,10 +5,14 @@
 // Output: response konsisten { success, message, data }
 // ============================================
 
+import { createHash, randomBytes } from 'node:crypto';
 import prisma from '../config/database.js';
 import { successResponse, errorResponse } from '../utils/response.js';
 import { hashPassword, comparePassword } from '../utils/password.js';
 import { signToken } from '../utils/jwt.js';
+import { sendPasswordResetEmail } from '../utils/sendMail.js';
+
+const RESET_PASSWORD_EXPIRY_MS = 60 * 60 * 1000;
 
 // Role yang boleh dipilih saat registrasi (enum di schema)
 const VALID_ROLES = ['STAFF', 'ADMIN', 'PETUGAS'];
@@ -259,5 +263,110 @@ export async function updateUser(req, res) {
   } catch (err) {
     console.error('Update user error:', err);
     return errorResponse(res, 'Gagal memperbarui user.', 500);
+  }
+}
+
+/**
+ * POST /api/auth/forgot-password
+ * Body: { email }
+ * Selalu respons sama (tidak membocorkan apakah email terdaftar).
+ */
+export async function forgotPassword(req, res) {
+  const genericMsg =
+    'Jika email terdaftar, instruksi reset password telah dikirim. Periksa inbox atau folder spam.';
+  try {
+    const email = req.body?.email?.trim()?.toLowerCase();
+    if (!email) {
+      return errorResponse(res, 'Email wajib diisi', 400);
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return successResponse(res, genericMsg);
+    }
+
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const resetPasswordExpires = new Date(Date.now() + RESET_PASSWORD_EXPIRY_MS);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: tokenHash,
+        resetPasswordExpires,
+      },
+    });
+
+    const base = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const resetUrl = `${base}/reset-password?token=${rawToken}`;
+
+    const { sent, reason } = await sendPasswordResetEmail(user.email, resetUrl);
+    if (!sent && reason === 'no_smtp' && process.env.NODE_ENV !== 'development') {
+      console.warn('[forgot-password] SMTP tidak dikonfigurasi — email tidak terkirim.');
+    }
+
+    return successResponse(res, genericMsg);
+  } catch (err) {
+    console.error('forgotPassword error:', err);
+    const msg = String(err?.message || '');
+    const code = err?.code;
+    if (
+      code === 'P2022' ||
+      msg.includes('reset_password') ||
+      msg.includes('does not exist') ||
+      msg.includes('Unknown arg')
+    ) {
+      console.error(
+        '[forgot-password] Database belum punya kolom reset password. Jalankan di folder backend: npx prisma db push && npx prisma generate'
+      );
+    }
+    return errorResponse(res, 'Gagal memproses permintaan.', 500);
+  }
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Body: { token, password }
+ */
+export async function resetPasswordWithToken(req, res) {
+  try {
+    const { token, password } = req.body;
+    if (!token || typeof token !== 'string' || !token.trim()) {
+      return errorResponse(res, 'Token tidak valid.', 400);
+    }
+    if (!password || password.length < 6) {
+      return errorResponse(res, 'Password minimal 6 karakter.', 400);
+    }
+
+    const tokenHash = createHash('sha256').update(token.trim()).digest('hex');
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: tokenHash,
+        resetPasswordExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      return errorResponse(
+        res,
+        'Tautan tidak valid atau sudah kadaluarsa. Minta reset password lagi dari halaman login.',
+        400
+      );
+    }
+
+    const passwordHash = await hashPassword(password);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return successResponse(res, 'Password berhasil diubah. Silakan login dengan password baru.');
+  } catch (err) {
+    console.error('resetPasswordWithToken error:', err);
+    return errorResponse(res, 'Gagal mengubah password.', 500);
   }
 }

@@ -63,10 +63,18 @@ backend/
 │   └── utils/             # Helper functions
 ├── prisma/
 │   └── schema.prisma      # Database schema
+├── uploads/               # File gambar barang (GET /uploads/...) — salin folder ini saat pindah PC
 ├── .env                   # Environment variables (jangan commit!)
 ├── .env.example           # Template .env
 └── package.json
 ```
+
+### Gambar katalog (`uploads/`)
+
+- File gambar **bukan** di dalam SQL dump; simpan di folder **`backend/uploads/`** (sejajar `src/`, **bukan** di folder `frontend`).
+- Di database, simpan **`gambar_url` sebagai path relatif** `/uploads/namafile.jpg` agar tiap device bisa pakai IP server lewat `NEXT_PUBLIC_API_URL` di frontend.
+- Upload baru lewat API sudah mengembalikan path relatif. Untuk data lama (`http://localhost:3001/...`): **`npm run normalize:gambar-url`**.
+- Uji: `http://ALAMAT_BACKEND:3001/uploads/NAMA_FILE` — file harus ada di folder uploads di **server** backend.
 
 ## 🔑 Environment Variables
 

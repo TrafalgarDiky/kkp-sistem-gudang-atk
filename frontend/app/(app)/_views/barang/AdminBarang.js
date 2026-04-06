@@ -2,7 +2,7 @@
 
 /** Barang — tampilan tabel + CRUD + upload gambar (Admin) */
 import { useEffect, useState } from "react";
-import { apiUrl, getAuthHeaders } from "@/lib/api";
+import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
 
 const initialForm = { kode: "", nama: "", satuan: "", stok: "", stokMinimum: "", deskripsi: "", gambarUrl: "" };
 
@@ -201,7 +201,7 @@ export default function AdminBarang() {
                   <td>{b.deskripsi || "-"}</td>
                   <td>
                     {b.gambarUrl ? (
-                      <a href={b.gambarUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={resolveBarangImageSrc(b.gambarUrl)} target="_blank" rel="noopener noreferrer">
                         Lihat
                       </a>
                     ) : (
@@ -299,7 +299,10 @@ export default function AdminBarang() {
               <div className="form-image-upload">
                 <div className="form-image-preview">
                   {(imagePreviewUrl || form.gambarUrl) ? (
-                    <img src={imagePreviewUrl || form.gambarUrl} alt="Preview" />
+                    <img
+                      src={imagePreviewUrl || resolveBarangImageSrc(form.gambarUrl)}
+                      alt="Preview"
+                    />
                   ) : (
                     <span className="form-image-placeholder">
                       <i className="fa-solid fa-image" /> Pilih gambar

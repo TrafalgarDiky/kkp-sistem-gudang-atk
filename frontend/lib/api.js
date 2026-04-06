@@ -19,6 +19,33 @@ export function apiUrl(path) {
 }
 
 /**
+ * URL gambar barang untuk <img src>.
+ * - Relatif "/uploads/..." → pakai host API (bukan Next.js :3000).
+ * - Absolut "http://host-lama:3001/uploads/..." (bekas PC lain) → ganti origin ke getApiUrl()
+ *   supaya file di laptop ini yang diload.
+ */
+export function resolveBarangImageSrc(gambarUrl) {
+  if (!gambarUrl) return null;
+  const raw = String(gambarUrl).trim();
+  const base = getApiUrl().replace(/\/$/, "");
+
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const u = new URL(raw);
+      if (u.pathname.startsWith("/uploads/")) {
+        return `${base}${u.pathname}${u.search || ""}`;
+      }
+    } catch {
+      /* bukan URL valid, jatuh ke bawah */
+    }
+    return raw;
+  }
+
+  const pathPart = raw.startsWith("/") ? raw : `/${raw}`;
+  return `${base}${pathPart}`;
+}
+
+/**
  * Header untuk request yang butuh login (Authorization: Bearer token).
  * Hanya jalan di browser (pakai localStorage).
  */
