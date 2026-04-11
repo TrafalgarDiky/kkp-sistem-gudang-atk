@@ -190,7 +190,13 @@ export default function StaffBarang() {
             >
               <div className="barang-card-image">
                 {b.gambarUrl ? (
-                  <img src={resolveBarangImageSrc(b.gambarUrl)} alt={b.nama} />
+                  <img
+                    src={resolveBarangImageSrc(b.gambarUrl)}
+                    alt={b.nama}
+                    loading="eager"
+                    decoding="async"
+                    referrerPolicy="no-referrer"
+                  />
                 ) : (
                   <span className="barang-card-placeholder">
                     <i className="fa-solid fa-box" />
@@ -228,7 +234,13 @@ export default function StaffBarang() {
             <h2>Detail barang</h2>
             <div className="detail-barang-image">
               {detailBarang.gambarUrl ? (
-                <img src={resolveBarangImageSrc(detailBarang.gambarUrl)} alt={detailBarang.nama} />
+                <img
+                  src={resolveBarangImageSrc(detailBarang.gambarUrl)}
+                  alt={detailBarang.nama}
+                  loading="eager"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
                 <span className="barang-card-placeholder">
                   <i className="fa-solid fa-box" />

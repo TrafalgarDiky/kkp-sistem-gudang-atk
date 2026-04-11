@@ -142,7 +142,16 @@ if (!fs.existsSync(uploadsDir)) {
     console.log('📂 Uploads:', uploadsDir);
   }
 }
-app.use('/uploads', express.static(uploadsDir));
+// Header ini membantu browser memuat gambar dari domain lain (Vercel → Railway) tanpa diblokir kebijakan CORP
+app.use(
+  '/uploads',
+  express.static(uploadsDir, {
+    setHeaders(res) {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    },
+  })
+);
 app.use('/api/upload', uploadRoutes);
 
 // Daftar route auth (untuk debug — bisa dihapus nanti)

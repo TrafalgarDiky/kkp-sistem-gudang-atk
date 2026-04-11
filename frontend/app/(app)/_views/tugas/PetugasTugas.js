@@ -350,6 +350,9 @@ export default function PetugasTugas() {
                     <img
                       src={resolveBarangImageSrc(it.barang.gambarUrl)}
                       alt={it.barang?.nama || "Barang"}
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
                       style={{
                         width: "52px",
                         height: "52px",

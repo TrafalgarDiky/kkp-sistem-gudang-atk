@@ -5,9 +5,9 @@
   margin: 0;
 }
 
+/* Hanya hidden — hindari `clip` di html/body karena bisa mengganggu paint gambar di Safari/iOS */
 html {
   overflow-x: hidden;
-  overflow-x: clip;
 }
 
 html,
@@ -22,7 +22,6 @@ body {
 
 body {
   overflow-x: hidden;
-  overflow-x: clip;
 }
 
 a {

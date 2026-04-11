@@ -332,51 +332,107 @@ h2 {
   box-shadow: 0 14px 24px rgba(79, 70, 229, 0.28);
 }
 
-/* --- Layar sempit (HP): kartu tidak pakai lebar tetap 660px --- */
-@media (max-width: 700px) {
+/* --- Layar sempit (HP / tablet): layout kolom — hindari absolute + height:% (sering bikin konten hilang di WebKit/Android) --- */
+@media (max-width: 768px) {
   .auth-page {
     display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
     overflow-x: hidden;
     overflow-y: auto;
     place-items: unset;
+    -webkit-overflow-scrolling: touch;
   }
 
   .card {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     max-width: 100%;
     height: auto;
-    min-height: 460px;
+    min-height: 0;
     margin: 0 auto;
+    overflow: visible;
+    border-radius: 18px;
+  }
+
+  /* Panel ungu geser tidak dipakai di HP */
+  .card-bg {
+    display: none;
+  }
+
+  .hero,
+  .form {
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0;
+    left: 0 !important;
+    translate: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    flex-shrink: 0;
+  }
+
+  /* Hanya pasangan aktif yang tampil: daftar = hero.register + form.register; login = hero.login + form.login */
+  .hero:not(.active),
+  .form:not(.active) {
+    display: none !important;
+  }
+
+  .hero.active {
+    display: flex !important;
+    flex-direction: column;
+    order: 1;
+    padding: 1.25rem 1rem;
+    border-radius: 18px 18px 0 0;
+    background: linear-gradient(135deg, var(--auth-primary), var(--auth-primary-dark));
+    color: #f8fafc;
+  }
+
+  .form.active {
+    display: flex !important;
+    flex-direction: column;
+    order: 2;
+    padding: 1.25rem 1rem 1.5rem;
+    border-radius: 0 0 18px 18px;
+    align-items: stretch;
   }
 
   .hero h2 {
-    font-size: 1.25rem;
-  }
-
-  .form {
-    padding: 20px 14px;
+    font-size: 1.35rem;
   }
 
   .form h2 {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
+  }
+
+  .form form {
+    align-items: stretch;
+  }
+
+  .form button[type="submit"] {
+    width: 100%;
+    max-width: none;
   }
 }
 
 @media (max-width: 400px) {
-  .card {
-    min-height: 500px;
-    border-radius: 16px;
+  .hero.active {
+    padding: 1rem 0.85rem;
   }
 
-  .hero {
-    padding: 0 12px;
+  .form.active {
+    padding: 1rem 0.85rem 1.25rem;
   }
 
   .hero button {
     padding: 10px 28px;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
   }
 }
