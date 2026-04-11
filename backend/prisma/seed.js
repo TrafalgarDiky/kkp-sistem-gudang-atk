@@ -1,6 +1,8 @@
 // ============================================
 // FILE: prisma/seed.js
-// FUNGSI: Isi data awal (seed) — satu admin agar bisa login
+// FUNGSI: Hanya untuk lingkungan development / DB lokal kosong — buat akun uji login.
+// Production: data barang & stok dari aplikasi / import resmi; JANGAN andalkan seed untuk data bisnis.
+// Deploy (Railway/Vercel) tidak otomatis menjalankan seed kecuali kamu sengaja set command-nya.
 // Jalankan: npm run prisma:seed atau npx prisma db seed
 // ============================================
 
@@ -19,21 +21,13 @@ async function main() {
   const email2 = 'admin2@gudang.atk';
   const passwordHash2 = await bcrypt.hash('admin222', 10);
 
-  // Upsert: buat kalau belum ada, atau update jadi AKTIF + password admin123 kalau sudah ada
+  // Upsert admin 1 & 2 (masing-masing satu upsert — jangan gabung satu objek dengan where/create duplikat)
   await prisma.user.upsert({
     where: { email },
     create: {
       nama: 'Admin Gudang',
       email,
       passwordHash,
-      role: 'ADMIN',
-      statusAkun: 'AKTIF'
-    },
-    where: {email2},
-    create: {
-      nama: 'Admin Gudang 2',
-      email2,
-      passwordHash2,
       role: 'ADMIN',
       statusAkun: 'AKTIF'
     },
@@ -45,6 +39,24 @@ async function main() {
     }
   });
   console.log('Admin siap: email = admin@gudang.atk, password = admin123 (status AKTIF)');
+
+  await prisma.user.upsert({
+    where: { email: email2 },
+    create: {
+      nama: 'Admin Gudang 2',
+      email: email2,
+      passwordHash: passwordHash2,
+      role: 'ADMIN',
+      statusAkun: 'AKTIF'
+    },
+    update: {
+      statusAkun: 'AKTIF',
+      passwordHash: passwordHash2,
+      role: 'ADMIN',
+      nama: 'Admin Gudang 2'
+    }
+  });
+  console.log('Admin 2 siap: email = admin2@gudang.atk, password = admin222 (status AKTIF)');
 
   // Petugas (untuk tes tugas pengantaran)
   await prisma.user.upsert({
