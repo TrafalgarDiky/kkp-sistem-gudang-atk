@@ -1,0 +1,8 @@
+# Di dashboard Railway: Root Directory = backend (wajib untuk monorepo).
+# Docker melewati Railpack yang sering gagal pada repo multi-folder.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
