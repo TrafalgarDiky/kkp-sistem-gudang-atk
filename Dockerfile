@@ -12,7 +12,8 @@ COPY backend/package.json backend/package-lock.json ./
 RUN npm ci
 
 COPY backend/ ./
-RUN npx prisma generate
+# prisma.config.ts butuh DATABASE_URL; saat build tidak ada .env — generate tidak konek DB, URL placeholder cukup.
+RUN DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public" npx prisma generate
 
 ENV NODE_ENV=production
 EXPOSE 3001
