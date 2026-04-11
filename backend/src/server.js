@@ -57,6 +57,16 @@ app.use(
   })
 );
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.FRONTEND_URL?.trim() ||
+    process.env.FRONTEND_URL.includes('localhost'))
+) {
+  console.warn(
+    '[CORS] Di production, set FRONTEND_URL di Railway ke URL Vercel (mis. https://xxx.vercel.app). Tanpa itu, browser memakai default localhost dan request dari Vercel diblokir.'
+  );
+}
+
 // Body parser: Parse JSON dari request body
 app.use(express.json());
 
