@@ -1,0 +1,10 @@
+.git
+frontend
+mobile-petugas
+docs
+**/.env
+**/.env.*
+**/node_modules
+backend/node_modules
+backend/uploads
+*.md
