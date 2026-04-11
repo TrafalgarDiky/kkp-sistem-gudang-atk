@@ -37,22 +37,37 @@ const PORT = process.env.PORT || 3001;
 // ============================================
 
 // CORS: Izinkan request dari frontend (Next.js)
-// FRONTEND_URL bisa beberapa domain (pisah koma), mis. Vercel production + preview:
-// https://app.vercel.app,https://app-git-main-xxx.vercel.app
+// - FRONTEND_URL: daftar eksplisit (pisah koma)
+// - Host *.vercel.app: otomatis diizinkan (preview deploy punya URL beda tiap commit, tidak praktis dicantumkan satu per satu)
 const frontendOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
-const corsOrigin =
-  frontendOrigins.length === 0
-    ? 'http://localhost:3000'
-    : frontendOrigins.length === 1
-      ? frontendOrigins[0]
-      : frontendOrigins;
+
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return true;
+  if (frontendOrigins.includes(origin)) return true;
+  try {
+    const u = new URL(origin);
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    if (u.hostname.endsWith('.vercel.app')) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
 
 app.use(
   cors({
-    origin: corsOrigin,
+    origin(origin, callback) {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (isAllowedCorsOrigin(origin)) {
+        return callback(null, origin);
+      }
+      return callback(new Error(`CORS: origin tidak diizinkan: ${origin}`));
+    },
     credentials: true,
   })
 );
@@ -63,7 +78,7 @@ if (
     process.env.FRONTEND_URL.includes('localhost'))
 ) {
   console.warn(
-    '[CORS] Di production, set FRONTEND_URL di Railway ke URL Vercel (mis. https://xxx.vercel.app). Tanpa itu, browser memakai default localhost dan request dari Vercel diblokir.'
+    '[CORS] FRONTEND_URL belum set ke domain Vercel — preview *.vercel.app tetap diizinkan; untuk email reset password / tautan absolut, set FRONTEND_URL ke URL production kamu.'
   );
 }
 

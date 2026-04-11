@@ -743,6 +743,18 @@
   border-color: #c7d2fe;
 }
 
+/* Katalog staff: toolbar tidak melebihi lebar layar kecil (tanpa scroll horizontal) */
+@media (max-width: 768px) {
+  .katalog-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .katalog-filter {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 .katalog-cta-btn {
   width: 100%;
   justify-content: center;
