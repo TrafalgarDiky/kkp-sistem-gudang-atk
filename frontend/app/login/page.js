@@ -67,7 +67,9 @@ export default function LoginPage() {
         setLoginError("Token tidak diterima. Coba lagi.");
       }
     } catch (err) {
-      setLoginError("Koneksi gagal. Pastikan backend jalan.");
+      setLoginError(
+        "Tidak bisa menghubungi API. Cek: (1) NEXT_PUBLIC_API_URL di Vercel = URL Railway, (2) FRONTEND_URL di Railway berisi URL situs ini persis (https://...), bisa beberapa URL pisah koma. (3) /api/health backend hidup."
+      );
     } finally {
       setLoginLoading(false);
     }
@@ -107,7 +109,10 @@ export default function LoginPage() {
         setRegMessage({ type: "error", text: data.message || "Registrasi gagal." });
       }
     } catch (err) {
-      setRegMessage({ type: "error", text: "Koneksi gagal. Pastikan backend jalan." });
+      setRegMessage({
+        type: "error",
+        text: "Tidak bisa menghubungi API. Samakan FRONTEND_URL di Railway dengan URL Vercel yang kamu buka, dan NEXT_PUBLIC_API_URL ke Railway.",
+      });
     } finally {
       setRegLoading(false);
     }

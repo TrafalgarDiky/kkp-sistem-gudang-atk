@@ -37,11 +37,25 @@ const PORT = process.env.PORT || 3001;
 // ============================================
 
 // CORS: Izinkan request dari frontend (Next.js)
-// Frontend biasanya jalan di port berbeda (misal 3000)
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true // Izinkan kirim cookie/token
-}));
+// FRONTEND_URL bisa beberapa domain (pisah koma), mis. Vercel production + preview:
+// https://app.vercel.app,https://app-git-main-xxx.vercel.app
+const frontendOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+const corsOrigin =
+  frontendOrigins.length === 0
+    ? 'http://localhost:3000'
+    : frontendOrigins.length === 1
+      ? frontendOrigins[0]
+      : frontendOrigins;
+
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true,
+  })
+);
 
 // Body parser: Parse JSON dari request body
 app.use(express.json());
