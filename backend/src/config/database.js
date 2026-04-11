@@ -17,7 +17,7 @@ function normalizePostgresDatabaseUrl(raw) {
   const s = typeof raw === 'string' ? raw.trim() : '';
   if (!s) {
     throw new Error(
-      'DATABASE_URL kosong. Isi di backend/.env (satu folder dengan package.json). Lihat ENV_SETUP.md.'
+      'DATABASE_URL kosong. Lokal: isi backend/.env. Deploy (Railway/Render): tambah Variables DATABASE_URL (connection string Supabase). Lihat ENV_SETUP.md.'
     );
   }
   if (/^postgresql:\/\/[^:@]+@/i.test(s)) {

@@ -44,9 +44,10 @@ if (!process.env.DATABASE_URL?.trim()) {
   }
 }
 
-if (!loadedPath && process.env.NODE_ENV !== 'test') {
+// Di Docker/Railway tidak ada .env di disk — DATABASE_URL dari Variables platform (wajar).
+if (!loadedPath && process.env.NODE_ENV !== 'test' && !process.env.DATABASE_URL?.trim()) {
   console.warn(
-    '[loadEnv] Tidak ada file .env. Dicoba:\n  -',
+    '[loadEnv] Tidak ada file .env dan DATABASE_URL belum di environment. Lokal: buat backend/.env. Deploy: set Variables (Railway/Render). Dicoba path:\n  -',
     envCandidates.join('\n  - ')
   );
 }
