@@ -205,4 +205,13 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.SUPABASE_URL?.trim() || !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim())
+  ) {
+    console.warn(
+      '[storage] Upload gambar ke folder container saja — file bisa hilang saat redeploy. ' +
+        'Production: set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY dan bucket Storage `barang-gambar` (lihat backend/ENV_SETUP.md).'
+    );
+  }
 });

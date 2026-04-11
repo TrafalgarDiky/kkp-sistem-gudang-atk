@@ -26,14 +26,24 @@ const storage = multer.diskStorage({
   },
 });
 
+const fileFilter = (req, file, cb) => {
+  const allowed = /image\/(jpeg|png|gif|webp)/.test(file.mimetype);
+  if (allowed) cb(null, true);
+  else cb(new Error('Hanya file gambar (JPEG, PNG, GIF, WebP) yang diizinkan.'), false);
+};
+
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = /image\/(jpeg|png|gif|webp)/.test(file.mimetype);
-    if (allowed) cb(null, true);
-    else cb(new Error('Hanya file gambar (JPEG, PNG, GIF, WebP) yang diizinkan.'), false);
-  },
+  fileFilter,
+});
+
+/** Memory — dipakai /api/upload supaya bisa kirim buffer ke Supabase atau tulis ke disk sekali jalan */
+const memoryStorage = multer.memoryStorage();
+export const uploadMemory = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter,
 });
 
 export default upload;

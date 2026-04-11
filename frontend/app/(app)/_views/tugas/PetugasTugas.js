@@ -352,7 +352,6 @@ export default function PetugasTugas() {
                       alt={it.barang?.nama || "Barang"}
                       loading="lazy"
                       decoding="async"
-                      referrerPolicy="no-referrer"
                       style={{
                         width: "52px",
                         height: "52px",

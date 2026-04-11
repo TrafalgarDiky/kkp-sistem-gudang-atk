@@ -195,7 +195,6 @@ export default function StaffBarang() {
                     alt={b.nama}
                     loading="eager"
                     decoding="async"
-                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <span className="barang-card-placeholder">
@@ -239,7 +238,6 @@ export default function StaffBarang() {
                   alt={detailBarang.nama}
                   loading="eager"
                   decoding="async"
-                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <span className="barang-card-placeholder">

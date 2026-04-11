@@ -53,13 +53,45 @@ NODE_ENV=development
    
    - **FRONTEND_URL**: URL frontend Next.js (default: http://localhost:3000). Dipakai juga untuk **tautan reset password** di email.
 
-## Gambar katalog di banyak device (HP / laptop lain)
+## Gambar katalog (disarankan production: Supabase Storage)
 
-- Di database, `gambar_url` sebaiknya **path relatif** saja: `/uploads/namafile.jpg` (bukan `http://localhost:3001/...`).
-- **Frontend** (`frontend/.env`): set **`NEXT_PUBLIC_API_URL`** ke alamat backend yang bisa dijangkau device itu, misalnya `http://192.168.1.50:3001` (IP komputer server).
-- **Backend** (`.env`): **`FRONTEND_URL`** = URL yang dipakai buka web di browser device itu (mis. `http://192.168.1.50:3000`).
-- **Folder `backend/uploads/`** harus ada di **mesin yang menjalankan backend** (satu server untuk semua client).
-- Data lama masih berisi `http://localhost:3001/uploads/...`? Jalankan sekali: **`npm run normalize:gambar-url`** di folder backend.
+**Masalah:** File di folder `backend/uploads/` pada Railway **hilang tiap redeploy** kecuali pakai volume. Solusi yang **aman dan tahan lama**: simpan file ke **Supabase Storage**, URL publik disimpan di kolom `gambar_url`.
+
+### 1) Buat bucket di Supabase
+
+1. Dashboard Supabase → **Storage** → **New bucket**
+2. Nama bucket: **`barang-gambar`** (harus sama persis)
+3. Centang **Public bucket** (agar gambar bisa dibaca browser tanpa token)
+
+### 2) Variabel environment backend (Railway / `.env`)
+
+```env
+# URL project: Settings → API → Project URL (bukan connection string database)
+SUPABASE_URL="https://xxxxxxxx.supabase.co"
+
+# service_role — rahasia, hanya server. JANGAN pakai di frontend / NEXT_PUBLIC_
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+Tanpa kedua variabel di atas, backend tetap menyimpan upload ke folder **`uploads/` lokal** (cocok untuk development di PC).
+
+### 3) Perilaku
+
+- **Ada `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`:** upload → bucket **`barang-gambar`** → response `url` berupa **https://...supabase.co/storage/...** (disimpan ke DB).
+- **Tidak ada:** sama seperti sebelumnya → file ke **`/uploads/...`** di server.
+
+### 4) Data lama
+
+Barang lama dengan path `/uploads/...` yang file-nya sudah tidak ada: **edit barang** di admin dan **upload ulang gambar**, atau isi `gambar_url` manual ke URL Supabase setelah upload.
+
+---
+
+## Gambar katalog (mode lokal / tanpa Storage)
+
+- **Frontend** (`frontend/.env`): **`NEXT_PUBLIC_API_URL`** ke backend yang bisa dijangkau device.
+- **Backend**: **`FRONTEND_URL`** = URL yang dipakai buka web.
+- **Folder `backend/uploads/`** harus ada di mesin yang menjalankan backend.
+- Data lama berisi `http://localhost:3001/uploads/...`? Jalankan **`npm run normalize:gambar-url`** di folder backend.
 
 ## Lupa password & SMTP (email)
 
@@ -177,3 +209,8 @@ Lalu jalankan server:
 ```bash
 npm run dev
 ```
+db lokal =
+DATABASE_URL="postgresql://gudang_user:dotamania99@localhost:5432/gudang_atk?schema=public"
+
+db supabase online =
+DATABASE_URL = "postgresql://postgres:[YOUR-PASSWORD]@db.mfvdwmupwmittmyfdbpm.supabase.co:5432/postgres"
