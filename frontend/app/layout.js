@@ -12,6 +12,12 @@ export const metadata = {
   description: "Sistem Gudang Alat Tulis Kantor",
 };
 
+/** Supaya lebar layout mengikuti layar HP (bukan zoom halaman desktop). */
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="id" className={poppins.variable}>
