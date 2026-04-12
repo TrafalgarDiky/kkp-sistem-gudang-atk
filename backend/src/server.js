@@ -211,7 +211,7 @@ app.listen(PORT, () => {
   ) {
     console.warn(
       '[storage] Upload gambar ke folder container saja — file bisa hilang saat redeploy. ' +
-        'Production: set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY dan bucket Storage `barang-gambar` (lihat backend/ENV_SETUP.md).'
+        'Production: set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (+ SUPABASE_STORAGE_BUCKET jika nama bucket bukan barang-gambar). Lihat backend/ENV_SETUP.md.'
     );
   }
 });

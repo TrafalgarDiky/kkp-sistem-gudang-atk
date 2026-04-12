@@ -5,13 +5,54 @@
 import { createClient } from '@supabase/supabase-js';
 import path from 'path';
 
-/** Nama bucket di Supabase Dashboard → Storage (harus public read untuk katalog) */
-export const BARANG_BUCKET = 'barang-gambar';
+/** Hapus kutip pembungkus & whitespace — sering penyebab "Invalid Compact JWS" di Railway. */
+function normalizeSecretEnv(value) {
+  if (value == null || typeof value !== 'string') return '';
+  let v = value.trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    v = v.slice(1, -1).trim();
+  }
+  // JWT compact tidak boleh ada newline/spasi di tengah (copy-paste dari dashboard)
+  return v.replace(/\s+/g, '');
+}
+
+function normalizeUrlEnv(value) {
+  if (value == null || typeof value !== 'string') return '';
+  let v = value.trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    v = v.slice(1, -1).trim();
+  }
+  return v.replace(/\/+$/, '');
+}
+
+function getSupabaseEnv() {
+  const url = normalizeUrlEnv(process.env.SUPABASE_URL || '');
+  const key = normalizeSecretEnv(process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+  if (!url || !key) return null;
+  return { url, key };
+}
+
+/** Nama bucket: harus sama persis dengan di Supabase Storage (tanpa kutip di value). */
+function normalizeBucketName(value) {
+  if (value == null || typeof value !== 'string') return '';
+  let v = value.trim();
+  if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+    v = v.slice(1, -1).trim();
+  }
+  return v;
+}
+
+/**
+ * Nama bucket di Supabase → Storage (harus public read untuk katalog).
+ * Default `barang-gambar`; kalau bucket kamu beda (mis. `foto-barang`), set env SUPABASE_STORAGE_BUCKET.
+ */
+export function getBarangBucketName() {
+  const fromEnv = normalizeBucketName(process.env.SUPABASE_STORAGE_BUCKET || '');
+  return fromEnv || 'barang-gambar';
+}
 
 export function isSupabaseStorageConfigured() {
-  const u = process.env.SUPABASE_URL?.trim();
-  const k = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  return Boolean(u && k);
+  return Boolean(getSupabaseEnv());
 }
 
 /**
@@ -21,27 +62,70 @@ export function isSupabaseStorageConfigured() {
  * @returns {Promise<{ url: string, path: string }>}
  */
 export async function uploadImageToSupabase(buffer, originalname, mimetype) {
-  const supabaseUrl = process.env.SUPABASE_URL.trim();
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY.trim();
+  const cfg = getSupabaseEnv();
+  if (!cfg) {
+    throw new Error('SUPABASE_URL atau SUPABASE_SERVICE_ROLE_KEY kosong');
+  }
 
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const { url: supabaseUrl, key: serviceKey } = cfg;
+  const parts = serviceKey.split('.');
+  if (!serviceKey.startsWith('eyJ') || parts.length !== 3) {
+    const sbHint = serviceKey.startsWith('sb_secret')
+      ? ' Jangan pakai Secret Key bentuk sb_secret_... — itu beda format. Di Supabase → Settings → API, cari key JWT "service_role" (panjang, dimulai eyJ, ada titik dua kali).'
+      : ' Salin key "service_role" (bukan anon), dimulai eyJ.';
+    throw new Error(
+      `SUPABASE_SERVICE_ROLE_KEY harus JWT service_role (eyJ + 3 segmen).${sbHint}`
+    );
+  }
+
+  let supabase;
+  try {
+    supabase = createClient(supabaseUrl, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  } catch (e) {
+    const m = e?.message || String(e);
+    if (/jws|jwt/i.test(m)) {
+      throw new Error(
+        'Key Supabase tidak valid (JWS). Di Railway: hapus kutip di value, pastikan satu baris penuh, pakai service_role bukan placeholder.'
+      );
+    }
+    throw e;
+  }
 
   const ext = (path.extname(originalname || '') || '').toLowerCase() || '.jpg';
   const safeName = (originalname || 'gambar').replace(/[^a-zA-Z0-9.-]/g, '_').slice(0, 50);
   let objectName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
   if (!objectName.toLowerCase().endsWith(ext)) objectName += ext;
 
-  const { data, error } = await supabase.storage.from(BARANG_BUCKET).upload(objectName, buffer, {
-    contentType: mimetype || 'image/jpeg',
-    upsert: false,
-  });
-
-  if (error) {
-    throw new Error(error.message || 'Gagal upload ke Supabase Storage');
+  const bucket = getBarangBucketName();
+  let data;
+  let error;
+  try {
+    const out = await supabase.storage.from(bucket).upload(objectName, buffer, {
+      contentType: mimetype || 'image/jpeg',
+      upsert: false,
+    });
+    data = out.data;
+    error = out.error;
+  } catch (e) {
+    const m = e?.message || String(e);
+    if (/jws|jwt/i.test(m)) {
+      throw new Error(
+        'Gagal autentikasi ke Supabase (JWS). Periksa SUPABASE_SERVICE_ROLE_KEY dan SUPABASE_URL di Railway — salin ulang dari dashboard, tanpa spasi/kutip tambahan.'
+      );
+    }
+    throw e;
   }
 
-  const { data: pub } = supabase.storage.from(BARANG_BUCKET).getPublicUrl(data.path);
+  if (error) {
+    let msg = error.message || 'Gagal upload ke Supabase Storage';
+    if (/bucket not found|not found/i.test(msg)) {
+      msg += ` — Backend memakai bucket "${bucket}". Di Railway set SUPABASE_STORAGE_BUCKET sama persis dengan nama bucket di Supabase (mis. foto-barang). Kalau env kosong/salah nama, default adalah "barang-gambar".`;
+    }
+    throw new Error(msg);
+  }
+
+  const { data: pub } = supabase.storage.from(bucket).getPublicUrl(data.path);
   return { url: pub.publicUrl, path: data.path };
 }

@@ -60,8 +60,9 @@ NODE_ENV=development
 ### 1) Buat bucket di Supabase
 
 1. Dashboard Supabase → **Storage** → **New bucket**
-2. Nama bucket: **`barang-gambar`** (harus sama persis)
+2. Nama bucket bebas (mis. **`foto-barang`** atau **`barang-gambar`**), yang penting **public read** untuk katalog.
 3. Centang **Public bucket** (agar gambar bisa dibaca browser tanpa token)
+4. Kalau nama bucket **bukan** `barang-gambar`, set juga **`SUPABASE_STORAGE_BUCKET`** di Railway / `.env` (lihat bawah).
 
 ### 2) Variabel environment backend (Railway / `.env`)
 
@@ -71,13 +72,19 @@ SUPABASE_URL="https://xxxxxxxx.supabase.co"
 
 # service_role — rahasia, hanya server. JANGAN pakai di frontend / NEXT_PUBLIC_
 SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+# Di Railway: tempel value TANPA kutip tambahan (jangan "eyJ..." dengan kutip ganda di UI).
+# Kalau error "Invalid Compact JWS", salin ulang key service_role utuh (satu baris, dimulai eyJ).
+# JANGAN pakai Secret Key model sb_secret_... — backend butuh JWT "service_role" (dimulai eyJ) dari Settings → API.
+
+# Opsional: nama bucket Storage (default barang-gambar). Contoh kalau bucket kamu "foto-barang":
+# SUPABASE_STORAGE_BUCKET="foto-barang"
 ```
 
 Tanpa kedua variabel di atas, backend tetap menyimpan upload ke folder **`uploads/` lokal** (cocok untuk development di PC).
 
 ### 3) Perilaku
 
-- **Ada `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`:** upload → bucket **`barang-gambar`** → response `url` berupa **https://...supabase.co/storage/...** (disimpan ke DB).
+- **Ada `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`:** upload → bucket yang di-set (`SUPABASE_STORAGE_BUCKET` atau default **`barang-gambar`**) → response `url` berupa **https://...supabase.co/storage/...** (disimpan ke DB).
 - **Tidak ada:** sama seperti sebelumnya → file ke **`/uploads/...`** di server.
 
 ### 4) Data lama
