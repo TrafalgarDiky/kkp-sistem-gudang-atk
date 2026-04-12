@@ -99,14 +99,22 @@ app.use((req, res, next) => {
 // Health check endpoint (untuk test API jalan atau tidak)
 app.get('/api/health', (req, res) => {
   const supabase = isSupabaseStorageConfigured();
+  /** Kalau false, Railway tidak mengirim nama variabel ini ke container (bukan rahasia). */
+  const bucketEnvDefined =
+    process.env.SUPABASE_STORAGE_BUCKET != null &&
+    String(process.env.SUPABASE_STORAGE_BUCKET).trim().length > 0;
   res.json({
     success: true,
     message: 'API Server is running!',
     timestamp: new Date().toISOString(),
     /** Cek dari browser: mode upload + nama bucket (tanpa secret). */
     storage: supabase
-      ? { mode: 'supabase', bucket: getBarangBucketName() }
-      : { mode: 'local_uploads', bucket: null },
+      ? {
+          mode: 'supabase',
+          bucket: getBarangBucketName(),
+          bucketEnvDefined,
+        }
+      : { mode: 'local_uploads', bucket: null, bucketEnvDefined },
   });
 });
 
@@ -212,7 +220,15 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
   if (isSupabaseStorageConfigured()) {
-    console.log(`[storage] Supabase aktif — bucket: "${getBarangBucketName()}"`);
+    const b = getBarangBucketName();
+    const raw = process.env.SUPABASE_STORAGE_BUCKET;
+    const hasRaw = raw != null && String(raw).trim().length > 0;
+    console.log(`[storage] Supabase aktif — bucket dipakai: "${b}" | SUPABASE_STORAGE_BUCKET dari Railway: ${hasRaw ? 'ada' : 'TIDAK ADA (pakai default barang-gambar)'}`);
+    if (!hasRaw && b === 'barang-gambar') {
+      console.warn(
+        '[storage] Set variable SUPABASE_STORAGE_BUCKET=foto-barang pada SERVICE backend ini (bukan hanya project), lalu Redeploy.'
+      );
+    }
   } else if (process.env.NODE_ENV === 'production') {
     console.warn(
       '[storage] Upload gambar ke folder container saja — file bisa hilang saat redeploy. ' +
