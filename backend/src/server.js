@@ -22,6 +22,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { requireAuth, requireRole } from './middleware/authMiddleware.js';
 import { listPendingUsers, verifyUser } from './controllers/authController.js';
+import { isSupabaseStorageConfigured, getBarangBucketName } from './services/storageUpload.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, '..', 'uploads');
@@ -97,10 +98,15 @@ app.use((req, res, next) => {
 
 // Health check endpoint (untuk test API jalan atau tidak)
 app.get('/api/health', (req, res) => {
+  const supabase = isSupabaseStorageConfigured();
   res.json({
     success: true,
     message: 'API Server is running!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    /** Cek dari browser: mode upload + nama bucket (tanpa secret). */
+    storage: supabase
+      ? { mode: 'supabase', bucket: getBarangBucketName() }
+      : { mode: 'local_uploads', bucket: null },
   });
 });
 
@@ -205,10 +211,9 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
-  if (
-    process.env.NODE_ENV === 'production' &&
-    (!process.env.SUPABASE_URL?.trim() || !process.env.SUPABASE_SERVICE_ROLE_KEY?.trim())
-  ) {
+  if (isSupabaseStorageConfigured()) {
+    console.log(`[storage] Supabase aktif — bucket: "${getBarangBucketName()}"`);
+  } else if (process.env.NODE_ENV === 'production') {
     console.warn(
       '[storage] Upload gambar ke folder container saja — file bisa hilang saat redeploy. ' +
         'Production: set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (+ SUPABASE_STORAGE_BUCKET jika nama bucket bukan barang-gambar). Lihat backend/ENV_SETUP.md.'
