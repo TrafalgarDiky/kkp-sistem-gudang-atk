@@ -78,6 +78,7 @@ SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 # Opsional: nama bucket Storage (default barang-gambar). Contoh kalau bucket kamu "foto-barang":
 # SUPABASE_STORAGE_BUCKET="foto-barang"
+# Cadangan nama variabel (kalau typo di Railway): SUPABASE_BUCKET atau STORAGE_BUCKET
 ```
 
 Tanpa kedua variabel di atas, backend tetap menyimpan upload ke folder **`uploads/` lokal** (cocok untuk development di PC).

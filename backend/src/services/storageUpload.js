@@ -44,11 +44,27 @@ function normalizeBucketName(value) {
 
 /**
  * Nama bucket di Supabase → Storage (harus public read untuk katalog).
- * Default `barang-gambar`; kalau bucket kamu beda (mis. `foto-barang`), set env SUPABASE_STORAGE_BUCKET.
+ * Default `barang-gambar`. Urutan: SUPABASE_STORAGE_BUCKET → SUPABASE_BUCKET → STORAGE_BUCKET.
  */
 export function getBarangBucketName() {
-  const fromEnv = normalizeBucketName(process.env.SUPABASE_STORAGE_BUCKET || '');
-  return fromEnv || 'barang-gambar';
+  const chain = [
+    process.env.SUPABASE_STORAGE_BUCKET,
+    process.env.SUPABASE_BUCKET,
+    process.env.STORAGE_BUCKET,
+  ];
+  for (const raw of chain) {
+    const n = normalizeBucketName(raw || '');
+    if (n) return n;
+  }
+  return 'barang-gambar';
+}
+
+/** Nama env yang isinya dipakai untuk bucket (untuk debug health), atau null. */
+export function getBucketEnvSourceName() {
+  if (normalizeBucketName(process.env.SUPABASE_STORAGE_BUCKET || '')) return 'SUPABASE_STORAGE_BUCKET';
+  if (normalizeBucketName(process.env.SUPABASE_BUCKET || '')) return 'SUPABASE_BUCKET';
+  if (normalizeBucketName(process.env.STORAGE_BUCKET || '')) return 'STORAGE_BUCKET';
+  return null;
 }
 
 export function isSupabaseStorageConfigured() {

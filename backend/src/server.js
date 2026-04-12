@@ -22,7 +22,11 @@ import adminRoutes from './routes/adminRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { requireAuth, requireRole } from './middleware/authMiddleware.js';
 import { listPendingUsers, verifyUser } from './controllers/authController.js';
-import { isSupabaseStorageConfigured, getBarangBucketName } from './services/storageUpload.js';
+import {
+  isSupabaseStorageConfigured,
+  getBarangBucketName,
+  getBucketEnvSourceName,
+} from './services/storageUpload.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, '..', 'uploads');
@@ -97,12 +101,21 @@ app.use((req, res, next) => {
 // ============================================
 
 // Health check endpoint (untuk test API jalan atau tidak)
+/** Hanya nama key + panjang string — nilai secret tidak dikirim (bantu cek typo di Railway). */
+function supabaseEnvKeySummary() {
+  return Object.keys(process.env)
+    .filter((k) => k.startsWith('SUPABASE_'))
+    .sort()
+    .map((name) => ({
+      name,
+      valueChars: process.env[name] ? String(process.env[name]).trim().length : 0,
+    }));
+}
+
 app.get('/api/health', (req, res) => {
   const supabase = isSupabaseStorageConfigured();
-  /** Kalau false, Railway tidak mengirim nama variabel ini ke container (bukan rahasia). */
-  const bucketEnvDefined =
-    process.env.SUPABASE_STORAGE_BUCKET != null &&
-    String(process.env.SUPABASE_STORAGE_BUCKET).trim().length > 0;
+  const bucketSource = getBucketEnvSourceName();
+  const bucketEnvDefined = Boolean(bucketSource);
   res.json({
     success: true,
     message: 'API Server is running!',
@@ -113,8 +126,18 @@ app.get('/api/health', (req, res) => {
           mode: 'supabase',
           bucket: getBarangBucketName(),
           bucketEnvDefined,
+          /** Env mana yang memuat nama bucket (mis. SUPABASE_STORAGE_BUCKET). */
+          bucketEnvSource: bucketSource,
+          /** Daftar key SUPABASE_* yang benar-benar ada di proses Node + panjang value (bukan isi value). */
+          supabaseEnvKeySummary: supabaseEnvKeySummary(),
         }
-      : { mode: 'local_uploads', bucket: null, bucketEnvDefined },
+      : {
+          mode: 'local_uploads',
+          bucket: null,
+          bucketEnvDefined,
+          bucketEnvSource: bucketSource,
+          supabaseEnvKeySummary: supabaseEnvKeySummary(),
+        },
   });
 });
 
@@ -221,13 +244,16 @@ app.listen(PORT, () => {
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
   if (isSupabaseStorageConfigured()) {
     const b = getBarangBucketName();
-    const raw = process.env.SUPABASE_STORAGE_BUCKET;
-    const hasRaw = raw != null && String(raw).trim().length > 0;
-    console.log(`[storage] Supabase aktif — bucket dipakai: "${b}" | SUPABASE_STORAGE_BUCKET dari Railway: ${hasRaw ? 'ada' : 'TIDAK ADA (pakai default barang-gambar)'}`);
-    if (!hasRaw && b === 'barang-gambar') {
-      console.warn(
-        '[storage] Set variable SUPABASE_STORAGE_BUCKET=foto-barang pada SERVICE backend ini (bukan hanya project), lalu Redeploy.'
-      );
+    const src = getBucketEnvSourceName();
+    console.log(
+      `[storage] Supabase aktif — bucket: "${b}" | sumber env bucket: ${src || 'TIDAK ADA — set SUPABASE_STORAGE_BUCKET=foto-barang di service backend + Redeploy'}`
+    );
+    if (!src && b === 'barang-gambar') {
+      const keys = Object.keys(process.env)
+        .filter((k) => k.startsWith('SUPABASE_'))
+        .sort()
+        .join(', ');
+      console.warn(`[storage] Key SUPABASE_* yang terlihat Node: ${keys || '(kosong)'}`);
     }
   } else if (process.env.NODE_ENV === 'production') {
     console.warn(
