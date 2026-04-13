@@ -7,7 +7,16 @@
 import jwt from 'jsonwebtoken';
 
 // JWT_SECRET dari .env — dipakai untuk "tandatangan" token. Harus rahasia.
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret';
+// Production: WAJIB di-set. Jangan pernah pakai fallback karena bisa ditebak.
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET?.trim()) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET belum di-set di environment (Railway Variables).');
+  }
+  // Development/test: fallback agar developer tetap bisa jalan tanpa setup env (lebih gampang belajar).
+  console.warn('[jwt] JWT_SECRET kosong, memakai fallback DEV. Jangan dipakai untuk production.');
+}
+const JWT_SECRET_EFFECTIVE = JWT_SECRET?.trim() || 'fallback-dev-secret';
 // Lama token valid (contoh: 7 hari)
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
@@ -21,7 +30,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 export function signToken(userId, email, role) {
   return jwt.sign(
     { userId, email, role },
-    JWT_SECRET,
+    JWT_SECRET_EFFECTIVE,
     { expiresIn: JWT_EXPIRES_IN }
   );
 }
@@ -33,7 +42,7 @@ export function signToken(userId, email, role) {
  */
 export function verifyToken(token) {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET_EFFECTIVE);
     return { userId: decoded.userId, email: decoded.email, role: decoded.role };
   } catch {
     return null;

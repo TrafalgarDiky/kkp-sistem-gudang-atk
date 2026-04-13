@@ -9,6 +9,7 @@ import './loadEnv.js';
 
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -37,9 +38,57 @@ const uploadsDir = path.resolve(__dirname, '..', 'uploads');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+/**
+ * Railway/Vercel biasanya ada di belakang reverse proxy.
+ * Ini penting agar `req.ip` terbaca benar untuk rate limit.
+ */
+app.set('trust proxy', 1);
+
 // ============================================
 // MIDDLEWARE
 // ============================================
+
+// Rate limit dasar (semua request) untuk mengurangi abuse trafik.
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 menit
+  limit: 600, // 600 request / 15 menit / IP (internal kantor biasanya aman)
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler(req, res) {
+    return res.status(429).json({
+      success: false,
+      message: 'Terlalu banyak request. Coba lagi beberapa menit.',
+    });
+  },
+});
+app.use(globalLimiter);
+
+// Rate limit ketat khusus auth untuk mencegah brute force.
+const authLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10, // 10 kali coba login / 15 menit / IP
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler(req, res) {
+    return res.status(429).json({
+      success: false,
+      message: 'Terlalu banyak percobaan login. Tunggu 15 menit lalu coba lagi.',
+    });
+  },
+});
+
+const authForgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5, // 5 kali / 1 jam / IP
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  handler(req, res) {
+    return res.status(429).json({
+      success: false,
+      message: 'Terlalu banyak permintaan reset password. Coba lagi nanti.',
+    });
+  },
+});
 
 // CORS: Izinkan request dari frontend (Next.js)
 // - FRONTEND_URL: daftar eksplisit (pisah koma)
@@ -153,6 +202,11 @@ app.get('/', (req, res) => {
 // API Routes — pending & verify didaftarkan di app langsung agar pasti terbaca
 app.get('/api/auth/pending', requireAuth, requireRole(['ADMIN']), listPendingUsers);
 app.patch('/api/auth/users/:id/verify', requireAuth, requireRole(['ADMIN']), verifyUser);
+
+// Rate limit endpoint auth yang sering di-spam
+app.use('/api/auth/login', authLoginLimiter);
+app.use('/api/auth/forgot-password', authForgotLimiter);
+app.use('/api/auth/reset-password', authForgotLimiter);
 app.use('/api/auth', authRoutes);
 
 // Barang (katalog ATK)
