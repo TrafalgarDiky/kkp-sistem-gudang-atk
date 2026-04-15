@@ -452,7 +452,9 @@ h2 {
   .card {
     width: min(660px, calc(100vw - 12px));
     aspect-ratio: unset;
-    height: min(640px, 92dvh);
+    /* Dibuat lebih pendek supaya tidak "memanjang" di mobile.
+     * Kalau field banyak, bagian .form akan scroll di dalam card. */
+    height: min(560px, 86dvh);
     overflow: hidden;
   }
 
@@ -511,7 +513,7 @@ h2 {
 @media (max-width: 400px) {
   .card {
     width: calc(100vw - 10px);
-    height: min(660px, 94dvh);
+    height: min(580px, 88dvh);
   }
 
   .hero button {
