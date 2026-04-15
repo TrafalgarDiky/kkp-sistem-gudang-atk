@@ -33,6 +33,10 @@ export default function AdminPermintaan() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [modalTolakOpen, setModalTolakOpen] = useState(false);
+  const [targetTolak, setTargetTolak] = useState(null);
+  const [alasanTolak, setAlasanTolak] = useState("");
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   const fetchPermintaan = async () => {
     setError("");
@@ -55,6 +59,55 @@ export default function AdminPermintaan() {
     setLoading(true);
     fetchPermintaan();
   }, [filterStatus]);
+
+  const openTolak = (p) => {
+    setTargetTolak(p);
+    setAlasanTolak("");
+    setModalTolakOpen(true);
+  };
+
+  const closeTolak = () => {
+    setModalTolakOpen(false);
+    setTargetTolak(null);
+    setAlasanTolak("");
+  };
+
+  const canTolak = (p) => {
+    if (!p) return false;
+    if (p.statusAdmin === "SELESAI") return false;
+    if (p.statusAdmin === "DITOLAK_ADMIN") return false;
+    return true;
+  };
+
+  const submitTolak = async (e) => {
+    e?.preventDefault();
+    if (!targetTolak?.id) return;
+    const alasan = (alasanTolak || "").trim();
+    if (!alasan) {
+      setError("Alasan penolakan wajib diisi.");
+      return;
+    }
+    setSubmitLoading(true);
+    setError("");
+    try {
+      const res = await fetch(apiUrl(`/api/permintaan/${targetTolak.id}/approve`), {
+        method: "PATCH",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DITOLAK_ADMIN", catatanAdmin: alasan }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        closeTolak();
+        fetchPermintaan();
+      } else {
+        setError(data.message || "Gagal menolak permintaan");
+      }
+    } catch (_) {
+      setError("Koneksi gagal.");
+    } finally {
+      setSubmitLoading(false);
+    }
+  };
 
   return (
     <main className="app-content">
@@ -99,9 +152,11 @@ export default function AdminPermintaan() {
               <tr>
                 <th>Tanggal</th>
                 <th>Peminta</th>
+                <th>Divisi</th>
                 <th>Item</th>
                 <th>Status</th>
                 <th>Catatan</th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -109,6 +164,7 @@ export default function AdminPermintaan() {
                 <tr key={p.id}>
                   <td>{new Date(p.createdAt).toLocaleDateString("id-ID")}</td>
                   <td>{p.peminta?.nama}</td>
+                  <td>{p.peminta?.divisi ?? "-"}</td>
                   <td>
                     {p.items
                       ?.map(
@@ -125,10 +181,65 @@ export default function AdminPermintaan() {
                   <td>
                     {p.catatanAdmin || "-"}
                   </td>
+                  <td>
+                    {canTolak(p) ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-danger"
+                        onClick={() => openTolak(p)}
+                      >
+                        Tolak
+                      </button>
+                    ) : (
+                      <span className="app-muted">—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {modalTolakOpen && targetTolak && (
+        <div className="modal-overlay" onClick={closeTolak}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h2>Tolak Permintaan</h2>
+            <p className="app-muted" style={{ marginBottom: "0.75rem" }}>
+              Permintaan dari <strong>{targetTolak.peminta?.nama ?? "-"}</strong>.
+              Alasan akan tercatat sebagai catatan admin.
+            </p>
+
+            <form onSubmit={submitTolak}>
+              <label>
+                Alasan penolakan
+                <textarea
+                  value={alasanTolak}
+                  onChange={(e) => setAlasanTolak(e.target.value)}
+                  placeholder="Contoh: stok tidak mencukupi / permintaan tidak sesuai / dsb"
+                  style={{ width: "100%", marginTop: "0.25rem", minHeight: 90 }}
+                />
+              </label>
+
+              <div className="modal-actions" style={{ marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeTolak}
+                  disabled={submitLoading}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-danger"
+                  disabled={submitLoading}
+                >
+                  {submitLoading ? "Memproses..." : "Tolak Permintaan"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

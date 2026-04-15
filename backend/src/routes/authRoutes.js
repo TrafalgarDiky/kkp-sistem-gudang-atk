@@ -8,6 +8,8 @@ import { Router } from 'express';
 import {
   register,
   login,
+  getMe,
+  updateMe,
   verifyUser,
   listPendingUsers,
   listUsers,
@@ -27,6 +29,10 @@ router.post('/login', login);
 
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPasswordWithToken);
+
+// --- Route profil user yang sedang login ---
+router.get('/me', requireAuth, getMe);
+router.patch('/me', requireAuth, updateMe);
 
 // --- Route yang butuh login + role ADMIN ---
 router.get('/pending', requireAuth, requireRole(['ADMIN']), listPendingUsers);

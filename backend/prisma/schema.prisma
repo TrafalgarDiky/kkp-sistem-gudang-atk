@@ -17,6 +17,7 @@ model User {
   id          String   @id @default(uuid())
   nama        String
   email       String   @unique
+  divisi      String?  @map("divisi")
   passwordHash String  @map("password_hash")
   role        Role     @default(STAFF)
   statusAkun  StatusAkun @default(BELUM_VERIFIKASI) @map("status_akun")
@@ -34,9 +35,6 @@ model User {
   
   // Relasi: admin yang sedang memegang lock permintaan (multi-admin)
   permintaanYangDiambil Permintaan[] @relation("AssignedAdmin")
-  
-  // Relasi: admin yang assign tugas ke petugas
-  tugasYangDiassign TugasPetugas[] @relation("AssignedByAdmin")
   
   // Relasi: satu petugas bisa punya banyak tugas
   tugasPetugas TugasPetugas[] @relation("Petugas")
@@ -121,7 +119,7 @@ model TugasPetugas {
   id                 String        @id @default(uuid())
   permintaanId       String        @map("permintaan_id")
   petugasId          String?       @map("petugas_id")
-  assignedByAdminId  String?       @map("assigned_by_admin_id")  // Admin yang assign petugas
+  lokasiTujuan       String?       @map("lokasi_tujuan")
   statusTugas        StatusTugas   @default(MENUNGGU_ASSIGN) @map("status_tugas")
   dibuatOtomatis     Boolean       @default(true) @map("dibuat_otomatis")
   createdAt          DateTime      @default(now()) @map("created_at")
@@ -129,7 +127,6 @@ model TugasPetugas {
 
   permintaan       Permintaan @relation(fields: [permintaanId], references: [id], onDelete: Cascade)
   petugas          User?      @relation("Petugas", fields: [petugasId], references: [id])
-  assignedByAdmin  User?      @relation("AssignedByAdmin", fields: [assignedByAdminId], references: [id])
 
   @@map("tugas_petugas")
 }

@@ -16,6 +16,7 @@ export default function UsersPage() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ role: "", statusAkun: "" });
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     const raw =
@@ -109,6 +110,50 @@ export default function UsersPage() {
     }
   };
 
+  const handleNonaktifkan = async (u) => {
+    if (!u?.id) return;
+    const ok = window.confirm(`Nonaktifkan user "${u.nama}"? User tidak bisa login.`);
+    if (!ok) return;
+    setConfirmLoading(true);
+    setError("");
+    try {
+      const res = await fetch(apiUrl(`/api/auth/users/${u.id}`), {
+        method: "PATCH",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ statusAkun: "DITOLAK" }),
+      });
+      const data = await res.json();
+      if (data.success) fetchUsers();
+      else setError(data.message || "Gagal menonaktifkan user");
+    } catch (_) {
+      setError("Koneksi gagal.");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const handleAktifkan = async (u) => {
+    if (!u?.id) return;
+    const ok = window.confirm(`Aktifkan kembali user "${u.nama}"?`);
+    if (!ok) return;
+    setConfirmLoading(true);
+    setError("");
+    try {
+      const res = await fetch(apiUrl(`/api/auth/users/${u.id}`), {
+        method: "PATCH",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ statusAkun: "AKTIF" }),
+      });
+      const data = await res.json();
+      if (data.success) fetchUsers();
+      else setError(data.message || "Gagal mengaktifkan user");
+    } catch (_) {
+      setError("Koneksi gagal.");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
   if (user?.role !== "ADMIN") {
     return (
       <main className="app-content">
@@ -121,7 +166,7 @@ export default function UsersPage() {
   const labelStatus = (s) =>
     ({
       AKTIF: "Aktif",
-      DITOLAK: "Ditolak",
+      DITOLAK: "Nonaktif",
       BELUM_VERIFIKASI: "Belum verifikasi",
     })[s] || s;
   const labelRole = (r) =>
@@ -129,9 +174,9 @@ export default function UsersPage() {
 
   return (
     <main className="app-content">
-      <h1>User & Role</h1>
+      <h1>Manajemen User</h1>
       <p className="app-muted" style={{ marginBottom: "1rem" }}>
-        Kelola akun: verifikasi, ubah role, aktif/nonaktif.
+        Kelola akun: verifikasi user baru, ubah role (assign role), dan nonaktifkan akun.
       </p>
 
       {error && (
@@ -190,6 +235,30 @@ export default function UsersPage() {
                             Tolak
                           </button>{" "}
                         </>
+                      )}
+                      {u.statusAkun === "AKTIF" && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          style={{ marginRight: "0.5rem" }}
+                          onClick={() => handleNonaktifkan(u)}
+                          disabled={confirmLoading}
+                          title="Set status akun menjadi Nonaktif (tidak bisa login)"
+                        >
+                          {confirmLoading ? "..." : "Nonaktifkan"}
+                        </button>
+                      )}
+                      {u.statusAkun === "DITOLAK" && (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ marginRight: "0.5rem" }}
+                          onClick={() => handleAktifkan(u)}
+                          disabled={confirmLoading}
+                          title="Aktifkan kembali (bisa login)"
+                        >
+                          {confirmLoading ? "..." : "Aktifkan"}
+                        </button>
                       )}
                       <button
                         type="button"

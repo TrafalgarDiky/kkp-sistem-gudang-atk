@@ -57,10 +57,6 @@ export default function StaffDashboard({ user }) {
   const terbaru = [...permintaan].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   ).slice(0, 5);
-  const prioritas = [...permintaan]
-    .filter((p) => p.statusAdmin !== "SELESAI" && p.statusAdmin !== "DITOLAK_ADMIN")
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    .slice(0, 6);
   const statCards = [
     {
       key: "waiting",
@@ -138,41 +134,6 @@ export default function StaffDashboard({ user }) {
               gap: "1rem",
             }}
           >
-            <div>
-              <div className="page-head" style={{ marginBottom: "0.45rem" }}>
-                <h2 style={{ fontSize: "1.05rem", margin: 0 }}>Prioritas Permintaan</h2>
-                <Link href="/permintaan" className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.35rem 0.7rem" }}>
-                  Lihat semua
-                </Link>
-              </div>
-              {prioritas.length === 0 ? (
-                <p className="app-muted">Tidak ada prioritas saat ini.</p>
-              ) : (
-                <div className="table-wrap">
-                  <table className="app-table">
-                    <thead>
-                      <tr>
-                        <th>Tanggal</th>
-                        <th>Status</th>
-                        <th>Item</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {prioritas.map((p) => (
-                        <tr key={p.id}>
-                          <td>{new Date(p.createdAt).toLocaleDateString("id-ID")}</td>
-                          <td>
-                            <span className={`badge badge-${p.statusAdmin}`}>{getStatusDisplay(p)}</span>
-                          </td>
-                          <td>{p.items?.map((it) => `${it.barang?.nama} × ${it.jumlah}`).join(", ")}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
             <div>
               <div className="page-head" style={{ marginBottom: "0.45rem" }}>
                 <h2 style={{ fontSize: "1.05rem", margin: 0 }}>Riwayat Terbaru</h2>

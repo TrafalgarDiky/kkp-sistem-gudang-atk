@@ -31,7 +31,13 @@ export async function getLaporan(req, res) {
       where: wherePermintaan,
       orderBy: { updatedAt: "desc" },
       include: {
-        peminta: { select: { nama: true } },
+        peminta: { select: { nama: true, divisi: true } },
+        approver: { select: { nama: true } },
+        tugasPetugas: {
+          include: {
+            petugas: { select: { nama: true } },
+          },
+        },
         items: {
           include: { barang: { select: { nama: true, satuan: true } } },
         },

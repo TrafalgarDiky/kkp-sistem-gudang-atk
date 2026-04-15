@@ -1,23 +1,12 @@
 "use client";
 
 /**
- * Header / Topbar — logo + nama user + logout.
+ * Header / Topbar — logo + nama user.
  * Layout sama untuk semua role.
  */
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function Header({ user, onMenuClick, menuOpen }) {
-  const router = useRouter();
-
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    }
-    router.push("/login");
-  };
-
   return (
     <header className="app-topbar">
       <div className="app-topbar-left">
@@ -45,11 +34,6 @@ export default function Header({ user, onMenuClick, menuOpen }) {
           <span className="app-user-name">{user?.nama || "User"}</span>
           <span className="app-user-role-badge">{user?.role || ""}</span>
         </div>
-
-        <button type="button" className="app-logout" onClick={handleLogout} aria-label="Logout">
-          <i className="fa-solid fa-right-from-bracket" aria-hidden="true" />
-          <span className="app-logout-label">Logout</span>
-        </button>
       </div>
     </header>
   );

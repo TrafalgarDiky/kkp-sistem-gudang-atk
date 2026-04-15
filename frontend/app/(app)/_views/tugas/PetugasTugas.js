@@ -113,10 +113,34 @@ export default function PetugasTugas() {
     setUpdatingId(tugasId);
     setError("");
     try {
+      /**
+       * Apa tujuan bagian ini?
+       * - Saat konfirmasi selesai, minta petugas mengisi "lokasi tujuan".
+       *
+       * Apa input?
+       * - String lokasi dari prompt.
+       *
+       * Apa output?
+       * - Lokasi dikirim ke backend dan nanti muncul di Riwayat Tugas.
+       *
+       * Kenapa pakai prompt?
+       * - Paling cepat untuk versi awal tanpa bikin modal baru.
+       */
+      const lokasiTujuanRaw = window.prompt("Isi lokasi tujuan (contoh: Ruang TU / Lantai 2 / Bagian Keuangan):", "");
+      if (lokasiTujuanRaw === null) {
+        setUpdatingId(null);
+        return;
+      }
+      const lokasiTujuan = String(lokasiTujuanRaw || "").trim();
+      if (!lokasiTujuan) {
+        setError("Lokasi tujuan wajib diisi.");
+        setUpdatingId(null);
+        return;
+      }
       const res = await fetch(apiUrl(`/api/permintaan/tugas/${tugasId}`), {
         method: "PATCH",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ statusTugas: "SELESAI" }),
+        body: JSON.stringify({ statusTugas: "SELESAI", lokasiTujuan }),
       });
       const data = await res.json();
       if (data.success) {
@@ -174,7 +198,8 @@ export default function PetugasTugas() {
             <thead>
               <tr>
                 <th>Nomor / Tanggal</th>
-                <th>Peminta (Staff)</th>
+                <th>Divisi</th>
+                <th>Peminta</th>
                 <th>Nama barang</th>
                 <th>Jumlah barang</th>
                 <th>Status pengantaran</th>
@@ -233,6 +258,7 @@ export default function PetugasTugas() {
                         )}
                       </span>
                     </td>
+                    <td>{t.permintaan?.peminta?.divisi ?? "-"}</td>
                     <td>{t.permintaan?.peminta?.nama}</td>
                     <td>{namaBarang}</td>
                     <td>{totalItem} item</td>

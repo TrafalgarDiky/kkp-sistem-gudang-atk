@@ -158,25 +158,11 @@ git add frontend/app/restock/page.js
 git commit -m "Deskripsi singkat perubahan"
 ```
 
-Contoh pesan:
-
-- `"Tambah halaman Restock dan Log Stok"`
-- `"Perbaikan validasi login"`
-- `"Update schema Prisma: stokMinimum"`
-
 ### Langkah 4: Push ke GitHub
 
 ```bash
 git push
 ```
-
-Kalau pertama kali push branch ini:
-
-```bash
-git push -u origin main
-```
-
-Setelah itu cukup `git push`.
 
 ---
 
@@ -189,32 +175,11 @@ Setelah itu cukup `git push`.
 | 3      | `git commit -m "pesan"` | Simpan snapshot di komputer |
 | 4      | `git push`      | Kirim ke GitHub                   |
 
-Ulangi 1–4 setiap kali selesai mengerjakan fitur/perbaikan.
-
 ---
 
 ## 5. Hal yang perlu diingat
 
 - **Jangan push file `.env`** — berisi password DB dan rahasia. Pastikan `.env` ada di `.gitignore`.
-- **Commit sering, pesan jelas** — misal: "Tambah API restock", "Fix error di halaman Users".
+- **Commit sering, pesan jelas**.
 - **Sebelum push**, pastikan project masih jalan (backend/frontend tidak error).
 
----
-
-## 6. Jika repo sudah ada dan kamu clone di komputer lain
-
-```bash
-git clone https://github.com/NAMA_USER/NAMA_REPO.git
-cd NAMA_REPO
-```
-
-Lalu install dependency:
-
-- Backend: `cd backend && npm install`
-- Frontend: `cd frontend && npm install`
-
-Dan isi `.env` sesuai environment (DB, PORT, dll.). Setelah itu kamu bisa lanjut pakai `git pull` (ambil perubahan terbaru) dan `git push` (kirim perubahan).
-
----
-
-*File: `tutorialgithub.md` — panduan push & update project ke GitHub.*

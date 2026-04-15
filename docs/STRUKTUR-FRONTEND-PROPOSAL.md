@@ -185,97 +185,13 @@ frontend/
 
 ---
 
-## Perbandingan singkat
-
-| Aspek              | Opsi A (URL per role)     | Opsi B (URL tetap, view per role) |
-|--------------------|---------------------------|-----------------------------------|
-| URL                | `/admin/barang`, `/staff/barang` | `/barang` (sama semua role) |
-| File per role      | Satu folder per role (admin/, staff/, petugas/) | Satu folder _views/ berisi Admin..., Staff..., Petugas... |
-| Duplikasi route    | Ada (dashboard, barang di 3 role) | Hampir tidak |
-| Kejelasan “file untuk role X” | Sangat jelas dari path folder | Jelas dari nama file di _views |
-
----
-
 ## Rekomendasi: **Opsi B** (URL tetap + view per role)
 
 Untuk kasus kamu — **layout (sidebar) sama semua role, hanya isi halaman (UI) yang beda per role** — yang paling cocok dan paling mudah kamu edit sendiri adalah **Opsi B**.
-
-### Kenapa Opsi B lebih baik untuk kamu
-
-| Alasan | Penjelasan singkat |
-|--------|---------------------|
-| **Layout cuma satu** | Sidebar & header sama untuk Admin, Staff, Petugas. Kamu cuma rawat satu layout (`(app)/layout.js`), tidak perlu tiga layout terpisah. |
-| **Mudah diedit** | Mau ubah tampilan barang untuk **Staff**? Buka satu file: `_views/barang/StaffBarang.js`. Mau ubah untuk **Admin**? Buka `_views/barang/AdminBarang.js`. Satu fitur = satu file per role, jelas. |
-| **URL tetap** | Tetap `/dashboard`, `/barang`, `/permintaan`, `/permintaan/tugas`. Tidak perlu hafal `/admin/barang` vs `/staff/barang`. Redirect setelah login tetap ke `/dashboard`. |
-| **Sedikit duplikasi** | Satu route untuk tiap fitur (satu `page.js` untuk barang, satu untuk dashboard, dll.). Isi yang beda per role ada di folder `_views`, bukan duplikat banyak `page.js`. |
-| **Nambah role/halaman gampang** | Nanti mau tambah role atau tambah halaman: tambah file view (mis. `PetugasBarang.js`) dan satu kondisi di `page.js`, tanpa bikin folder route baru. |
-
-### Kalau pakai Opsi A
-
-- Layout tetap bisa satu, tapi kamu punya **banyak route** (admin/dashboard, staff/dashboard, petugas/dashboard, admin/barang, staff/barang, …).
-- Setiap ubah struktur navigasi atau layout, kamu bisa bingung “apa harus ubah di tiga tempat?” — padahal layout-nya sama. Dengan Opsi B, layout cuma satu tempat.
-
-### Kesimpulan
-
-- **Pakai Opsi B**: satu layout, URL tetap, isi halaman dikelompokkan per role di folder **`_views`** (Admin..., Staff..., Petugas...).
-- Lebih mudah kamu edit sendiri: ubah UI untuk satu role = ubah satu file view; ubah sidebar = ubah satu layout.
 
 ---
 
 ## ✅ Opsi B sudah diterapkan
 
-Struktur di bawah ini **sudah dipakai** di project.
+Struktur ini sudah dipakai di project.
 
-```
-frontend/
-├── app/
-│   ├── layout.js
-│   ├── page.js
-│   ├── globals.css
-│   ├── login/
-│   │   ├── page.js
-│   │   └── auth.css
-│   └── (app)/
-│       ├── layout.js              # import dari @/components/layout
-│       ├── app-layout.css
-│       ├── dashboard/
-│       │   └── page.js             # render AdminDashboard | StaffDashboard | PetugasDashboard
-│       ├── barang/
-│       │   └── page.js             # render AdminBarang | StaffBarang
-│       ├── permintaan/
-│       │   ├── page.js             # render AdminPermintaan | StaffPermintaan
-│       │   └── tugas/
-│       │       └── page.js         # render AdminTugas | PetugasTugas
-│       └── _views/                 # konten per role (bukan route)
-│           ├── dashboard/
-│           │   ├── AdminDashboard.js
-│           │   ├── StaffDashboard.js
-│           │   └── PetugasDashboard.js
-│           ├── barang/
-│           │   ├── AdminBarang.js   # tabel + CRUD + upload
-│           │   └── StaffBarang.js   # card (Staff & Petugas)
-│           ├── permintaan/
-│           │   ├── AdminPermintaan.js
-│           │   └── StaffPermintaan.js
-│           └── tugas/
-│               ├── AdminTugas.js
-│               └── PetugasTugas.js
-├── components/
-│   └── layout/
-│       ├── index.js                # export AuthGuard, Header, Sidebar
-│       ├── AuthGuard.js
-│       ├── Header.js
-│       └── Sidebar.js
-├── lib/
-│   └── api.js
-├── docs/
-│   └── STRUKTUR-FRONTEND-PROPOSAL.md
-├── next.config.js
-├── jsconfig.json
-├── package.json
-└── ENV_SETUP.md
-```
-
-**Cara edit per role:**  
-Ubah tampilan barang untuk Staff → edit `app/(app)/_views/barang/StaffBarang.js`.  
-Ubah tampilan barang untuk Admin → edit `app/(app)/_views/barang/AdminBarang.js`.

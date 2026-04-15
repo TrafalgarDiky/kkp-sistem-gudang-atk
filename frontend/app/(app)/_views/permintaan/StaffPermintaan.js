@@ -232,7 +232,11 @@ export default function StaffPermintaan() {
             </p>
             <p>
               <strong>Lokasi pengantaran:</strong>{" "}
-              <span className="app-muted">—</span>
+              {detailPermintaan.tugasPetugas?.[0]?.lokasiTujuan ? (
+                detailPermintaan.tugasPetugas?.[0]?.lokasiTujuan
+              ) : (
+                <span className="app-muted">—</span>
+              )}
             </p>
             <div className="modal-actions" style={{ marginTop: "1rem" }}>
               {canBatalkan(detailPermintaan) && (

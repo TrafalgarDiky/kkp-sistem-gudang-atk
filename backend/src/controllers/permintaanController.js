@@ -15,7 +15,7 @@ export async function listPermintaan(req, res) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
-        peminta: { select: { id: true, nama: true, email: true } },
+        peminta: { select: { id: true, nama: true, email: true, divisi: true } },
         approver: { select: { id: true, nama: true } },
         items: {
           include: {
@@ -41,7 +41,7 @@ export async function getPermintaanById(req, res) {
     const permintaan = await prisma.permintaan.findUnique({
       where: { id },
       include: {
-        peminta: { select: { id: true, nama: true, email: true } },
+        peminta: { select: { id: true, nama: true, email: true, divisi: true } },
         approver: { select: { id: true, nama: true } },
         items: {
           include: {
@@ -160,8 +160,26 @@ export async function approvePermintaan(req, res) {
     const permintaan = await prisma.permintaan.findUnique({ where: { id } });
     if (!permintaan)
       return errorResponse(res, "Permintaan tidak ditemukan", 404);
-    if (permintaan.statusAdmin !== "MENUNGGU_ADMIN") {
-      return errorResponse(res, "Permintaan ini sudah diproses", 400);
+    /**
+     * Sistem sekarang bisa auto-approve (status awal DISETUJUI_ADMIN).
+     * Admin tetap boleh MENOLAK sebelum permintaan selesai.
+     */
+    if (status === "DITOLAK_ADMIN") {
+      if (permintaan.statusAdmin === "SELESAI") {
+        return errorResponse(res, "Permintaan sudah selesai, tidak bisa ditolak", 400);
+      }
+      if (permintaan.statusAdmin === "DITOLAK_ADMIN") {
+        return errorResponse(res, "Permintaan sudah ditolak", 400);
+      }
+      const alasan = String(catatanAdmin || "").trim();
+      if (!alasan) {
+        return errorResponse(res, "Alasan penolakan wajib diisi", 400);
+      }
+    } else {
+      // DISETUJUI_ADMIN via approval manual hanya boleh dari MENUNGGU_ADMIN
+      if (permintaan.statusAdmin !== "MENUNGGU_ADMIN") {
+        return errorResponse(res, "Permintaan ini sudah diproses", 400);
+      }
     }
 
     const updated = await prisma.permintaan.update({
@@ -173,7 +191,7 @@ export async function approvePermintaan(req, res) {
         catatanAdmin: catatanAdmin?.trim() || null,
       },
       include: {
-        peminta: { select: { id: true, nama: true, email: true } },
+        peminta: { select: { id: true, nama: true, email: true, divisi: true } },
         approver: { select: { id: true, nama: true } },
         items: {
           include: {
@@ -269,7 +287,7 @@ export async function batalPermintaan(req, res) {
           approvedAt: new Date(),
         },
         include: {
-          peminta: { select: { id: true, nama: true, email: true } },
+          peminta: { select: { id: true, nama: true, email: true, divisi: true } },
           approver: { select: { id: true, nama: true } },
           items: { include: { barang: { select: { id: true, nama: true, satuan: true } } } },
           tugasPetugas: { include: { petugas: { select: { id: true, nama: true } } } },
@@ -323,7 +341,7 @@ export async function ambilTugas(req, res) {
       include: {
         permintaan: {
           include: {
-            peminta: { select: { id: true, nama: true, email: true } },
+            peminta: { select: { id: true, nama: true, email: true, divisi: true } },
             items: {
               include: {
                 barang: {
@@ -371,7 +389,7 @@ export async function lepasTugas(req, res) {
       include: {
         permintaan: {
           include: {
-            peminta: { select: { id: true, nama: true, email: true } },
+            peminta: { select: { id: true, nama: true, email: true, divisi: true } },
             items: {
               include: {
                 barang: {
@@ -405,7 +423,7 @@ export async function listTugasPetugas(req, res) {
       include: {
         permintaan: {
           include: {
-            peminta: { select: { id: true, nama: true, email: true } },
+            peminta: { select: { id: true, nama: true, email: true, divisi: true } },
             items: {
               include: {
                 barang: { select: { id: true, nama: true, satuan: true } },
@@ -414,7 +432,6 @@ export async function listTugasPetugas(req, res) {
           },
         },
         petugas: { select: { id: true, nama: true } },
-        assignedByAdmin: { select: { id: true, nama: true } },
       },
     });
     return successResponse(res, "Daftar tugas petugas", { tugas });
@@ -428,7 +445,7 @@ export async function listTugasPetugas(req, res) {
 export async function updateTugasStatus(req, res) {
   try {
     const { id: tugasId } = req.params;
-    const { statusTugas } = req.body;
+    const { statusTugas, lokasiTujuan } = req.body;
     const petugasId = req.user.userId;
 
     if (
@@ -475,6 +492,10 @@ export async function updateTugasStatus(req, res) {
           : statusTugas;
 
     if (isSelesai) {
+      const lokasi = String(lokasiTujuan || "").trim();
+      if (!lokasi) {
+        return errorResponse(res, "Lokasi tujuan wajib diisi", 400);
+      }
       const permintaanId = tugas.permintaanId;
       await prisma.$transaction(async (tx) => {
         for (const item of tugas.permintaan.items) {
@@ -495,7 +516,7 @@ export async function updateTugasStatus(req, res) {
         }
         await tx.tugasPetugas.update({
           where: { id: tugasId },
-          data: { statusTugas: statusToSave, petugasId },
+          data: { statusTugas: statusToSave, petugasId, lokasiTujuan: lokasi },
         });
         await tx.permintaan.update({
           where: { id: permintaanId },
@@ -514,7 +535,7 @@ export async function updateTugasStatus(req, res) {
       include: {
         permintaan: {
           include: {
-            peminta: { select: { id: true, nama: true, email: true } },
+            peminta: { select: { id: true, nama: true, email: true, divisi: true } },
             items: {
               include: {
                 barang: { select: { id: true, nama: true, satuan: true } },

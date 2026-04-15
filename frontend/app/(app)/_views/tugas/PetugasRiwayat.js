@@ -46,7 +46,7 @@ export default function PetugasRiwayat() {
             <thead>
               <tr>
                 <th>Tanggal pengantaran</th>
-                <th>Lokasi tujuan</th>
+                <th>Lokasi pengantaran</th>
                 <th>Peminta</th>
                 <th>Barang yang diantar</th>
                 <th>Petugas</th>
@@ -56,7 +56,7 @@ export default function PetugasRiwayat() {
               {riwayat.map((t) => (
                 <tr key={t.id}>
                   <td>{new Date(t.updatedAt || t.createdAt).toLocaleString("id-ID")}</td>
-                  <td><span className="app-muted">—</span></td>
+                  <td>{t.lokasiTujuan ? t.lokasiTujuan : <span className="app-muted">—</span>}</td>
                   <td>{t.permintaan?.peminta?.nama}</td>
                   <td>
                     {t.permintaan?.items?.map((it) => `${it.barang?.nama} × ${it.jumlah} ${it.barang?.satuan}`).join(", ")}

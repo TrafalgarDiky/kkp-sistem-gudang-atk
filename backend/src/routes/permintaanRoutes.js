@@ -48,8 +48,8 @@ router.patch(
 router.get("/", requireAuth, listPermintaan);
 // GET /api/permintaan/:id — detail
 router.get("/:id", requireAuth, getPermintaanById);
-// POST /api/permintaan — Staff buat permintaan
-router.post("/", requireAuth, requireRole(["STAFF"]), createPermintaan);
+// POST /api/permintaan — Staff, Admin, Petugas bisa buat permintaan
+router.post("/", requireAuth, requireRole(["STAFF", "ADMIN", "PETUGAS"]), createPermintaan);
 // PATCH /api/permintaan/:id/approve — Admin setujui/tolak (hanya approve/reject, tidak ambil tugas)
 router.patch(
   "/:id/approve",

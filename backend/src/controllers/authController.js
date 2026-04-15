@@ -110,6 +110,7 @@ export async function login(req, res) {
       id: user.id,
       nama: user.nama,
       email: user.email,
+      divisi: user.divisi,
       role: user.role,
       statusAkun: user.statusAkun
     };
@@ -118,6 +119,93 @@ export async function login(req, res) {
   } catch (err) {
     console.error('Login error:', err);
     return errorResponse(res, 'Gagal login. Coba lagi.', 500);
+  }
+}
+
+/**
+ * GET /api/auth/me
+ * Tujuan: ambil profil user yang sedang login.
+ */
+export async function getMe(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        divisi: true,
+        role: true,
+        statusAkun: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) return errorResponse(res, "User tidak ditemukan", 404);
+    return successResponse(res, "Profil user", { user });
+  } catch (err) {
+    console.error("getMe error:", err);
+    const detail =
+      process.env.NODE_ENV === "development" ? ` (${err?.message || "unknown"})` : "";
+    return errorResponse(res, `Gagal mengambil profil.${detail}`, 500);
+  }
+}
+
+/**
+ * PATCH /api/auth/me
+ * Tujuan: user update profil sendiri (nama, email, divisi).
+ * Body: { nama?, email?, divisi? }
+ */
+export async function updateMe(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const { nama, email, divisi } = req.body || {};
+
+    const data = {};
+    if (nama !== undefined) {
+      const n = String(nama || "").trim();
+      if (!n) return errorResponse(res, "Nama wajib diisi", 400);
+      data.nama = n;
+    }
+    if (email !== undefined) {
+      const e = String(email || "").trim().toLowerCase();
+      if (!e || !e.includes("@")) return errorResponse(res, "Email tidak valid", 400);
+      // pastikan email unik
+      const existing = await prisma.user.findUnique({ where: { email: e } });
+      if (existing && existing.id !== userId) {
+        return errorResponse(res, "Email sudah digunakan user lain", 409);
+      }
+      data.email = e;
+    }
+    if (divisi !== undefined) {
+      const d = String(divisi || "").trim();
+      data.divisi = d ? d : null;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return errorResponse(res, "Berikan minimal satu field: nama, email, atau divisi", 400);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        divisi: true,
+        role: true,
+        statusAkun: true,
+        updatedAt: true,
+      },
+    });
+    return successResponse(res, "Profil berhasil diupdate", { user: updated });
+  } catch (err) {
+    console.error("updateMe error:", err);
+    const detail =
+      process.env.NODE_ENV === "development" ? ` (${err?.message || "unknown"})` : "";
+    return errorResponse(res, `Gagal update profil.${detail}`, 500);
   }
 }
 
