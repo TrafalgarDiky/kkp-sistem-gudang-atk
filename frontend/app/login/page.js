@@ -120,6 +120,17 @@ export default function LoginPage() {
 
   return (
     <div className="auth-page">
+      {/* Brand / Logo di atas kotak login-register */}
+      <div className="auth-brand" aria-label="GATK">
+        <div className="auth-brand-icon" aria-hidden="true">
+          <img src="/6454239.gif" alt="" />
+        </div>
+        <div className="auth-brand-text">
+          <div className="auth-brand-name">GATK</div>
+          <div className="auth-brand-tagline">Memenuhi Kebutuhan Kerja Anda</div>
+        </div>
+      </div>
+
       <div className="card">
         {/* Background ungu: tanpa .login = kiri, dengan .login = geser kanan (translate 100%) */}
         <div className={`card-bg ${isLoginView ? "login" : ""}`} />

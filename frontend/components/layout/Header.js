@@ -23,9 +23,12 @@ export default function Header({ user, onMenuClick, menuOpen }) {
         )}
         <Link href="/dashboard" className="app-logo">
           <span className="app-logo-mark" aria-hidden="true">
-            <i className="fa-solid fa-box-open" />
+            <img src="/6454239.gif" alt="" />
           </span>
-          <span className="app-logo-brand">GATK</span>
+          <span className="app-logo-text">
+            <span className="app-logo-name">GATK</span>
+            <span className="app-logo-tagline">Memenuhi Kebutuhan Kerja Anda</span>
+          </span>
         </Link>
       </div>
 

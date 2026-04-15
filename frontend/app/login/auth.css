@@ -23,6 +23,102 @@
   overflow: hidden;
   font-family: "Poppins", "Segoe UI", Tahoma, sans-serif;
 }
+
+/* ===== Brand / Logo di atas card ===== */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 14px 34px rgba(55, 48, 163, 0.12);
+  animation: authFadeUp 0.7s ease both;
+}
+
+.auth-brand-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 10px 22px rgba(14, 165, 233, 0.22));
+  transition: filter 0.25s ease, transform 0.25s ease;
+}
+
+.auth-brand-icon svg {
+  width: 44px;
+  height: 44px;
+  transition: transform 0.25s ease;
+}
+
+.auth-brand-icon img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  transition: transform 0.25s ease;
+}
+
+.auth-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-brand-name {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.auth-brand-tagline {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #64748b;
+  padding-left: 1px;
+}
+
+/* Animasi masuk (mirip contoh logo kamu) */
+@keyframes authFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover: icon mengambang + shadow lebih tegas */
+.auth-brand:hover .auth-brand-icon {
+  filter: drop-shadow(0 14px 30px rgba(14, 165, 233, 0.42));
+}
+.auth-brand:hover .auth-brand-icon svg {
+  animation: authFloatBox 2s ease-in-out infinite;
+}
+
+.auth-brand:hover .auth-brand-icon img {
+  animation: authFloatBox 2s ease-in-out infinite;
+}
+@keyframes authFloatBox {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
 h2,
 h1 {
   font-family: "Poppins", sans-serif;
@@ -342,6 +438,11 @@ h2 {
     padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
     place-items: center;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .auth-brand {
+    width: min(660px, calc(100vw - 12px));
+    justify-content: center;
   }
 
   /*
