@@ -224,45 +224,85 @@ export default function PengeluaranPage() {
       ) : filtered.length === 0 ? (
         <p className="app-muted">Tidak ada data pengeluaran pada filter ini.</p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th>Tanggal keluar</th>
-                <th>Peminta</th>
-                <th>Diantar oleh</th>
-                <th>Disetujui oleh</th>
-                <th>Barang (ringkas)</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => {
-                const petugas = p.tugasPetugas?.[0]?.petugas?.nama ?? "—";
-                const approver = p.approver?.nama || "Auto-approve sistem";
-                const ringkas = (p.items || [])
-                  .slice(0, 2)
-                  .map((it) => `${it.barang?.nama ?? "-"} × ${it.jumlah}`)
-                  .join(", ");
-                const more = (p.items || []).length > 2 ? ` (+${(p.items || []).length - 2} item)` : "";
-                return (
-                  <tr key={p.id}>
-                    <td>{toIdDateTime(p.updatedAt)}</td>
-                    <td>{formatNamaDivisi(p.peminta)}</td>
-                    <td>{petugas}</td>
-                    <td>{approver}</td>
-                    <td>{ringkas}{more}</td>
-                    <td>
-                      <button type="button" className="btn-sm btn-edit" onClick={() => setDetailId(p.id)}>
-                        Detail
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div style={{ overflowX: "auto" }}>
+            <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th>Tanggal keluar</th>
+                  <th>Peminta</th>
+                  <th>Diantar oleh</th>
+                  <th>Disetujui oleh</th>
+                  <th>Barang (ringkas)</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => {
+                  const petugas = p.tugasPetugas?.[0]?.petugas?.nama ?? "—";
+                  const approver = p.approver?.nama || "Auto-approve sistem";
+                  const ringkas = (p.items || [])
+                    .slice(0, 2)
+                    .map((it) => `${it.barang?.nama ?? "-"} × ${it.jumlah}`)
+                    .join(", ");
+                  const more = (p.items || []).length > 2 ? ` (+${(p.items || []).length - 2} item)` : "";
+                  return (
+                    <tr key={p.id}>
+                      <td>{toIdDateTime(p.updatedAt)}</td>
+                      <td>{formatNamaDivisi(p.peminta)}</td>
+                      <td>{petugas}</td>
+                      <td>{approver}</td>
+                      <td>{ringkas}{more}</td>
+                      <td>
+                        <button type="button" className="btn-sm btn-edit" onClick={() => setDetailId(p.id)}>
+                          Detail
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tombol export diminta: di bawah tabel, warna hijau */}
+          <div style={{ marginTop: "0.9rem" }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{
+                background: "#22c55e",
+                borderColor: "#16a34a",
+                color: "#fff",
+              }}
+              disabled={filtered.length === 0}
+              onClick={() => {
+                const rows = [
+                  ["Tanggal keluar", "Peminta", "Diantar oleh", "Disetujui oleh", "Barang", "Jumlah", "Satuan", "Catatan"],
+                ];
+                for (const p of filtered) {
+                  const petugas = p.tugasPetugas?.[0]?.petugas?.nama ?? "-";
+                  const approver = p.approver?.nama || "Auto-approve sistem";
+                  for (const it of p.items || []) {
+                    rows.push([
+                      toIdDateTime(p.updatedAt),
+                      formatNamaDivisi(p.peminta),
+                      petugas,
+                      approver,
+                      it.barang?.nama ?? "-",
+                      String(it.jumlah ?? ""),
+                      it.barang?.satuan ?? "-",
+                      p.catatanAdmin || "",
+                    ]);
+                  }
+                }
+                downloadCsv(`pengeluaran_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+              }}
+            >
+              Export CSV
+            </button>
+          </div>
+        </>
       )}
 
       {/* Modal detail */}

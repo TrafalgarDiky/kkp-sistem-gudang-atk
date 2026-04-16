@@ -7,6 +7,24 @@
 import { useEffect, useState } from "react";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
 
+function downloadCsv(filename, rows) {
+  const escape = (s) => {
+    const str = (s ?? "").toString();
+    if (/[",\n]/.test(str)) return `"${str.replaceAll('"', '""')}"`;
+    return str;
+  };
+  const csv = rows.map((r) => r.map(escape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function RestockPage() {
   const [user, setUser] = useState(null);
   const [barang, setBarang] = useState([]);
@@ -160,34 +178,66 @@ export default function RestockPage() {
       {loading ? (
         <p className="app-muted">Memuat...</p>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Barang</th>
-                <th>Jumlah</th>
-                <th>Sumber</th>
-                <th>Oleh</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.length === 0 ? (
-                <tr><td colSpan={5} className="app-muted">Belum ada data restock.</td></tr>
-              ) : (
-                list.map((r) => (
-                  <tr key={r.id}>
-                    <td>{r.tanggal ? new Date(r.tanggal).toLocaleDateString("id-ID") : "-"}</td>
-                    <td>{r.barang?.nama ?? "-"} ({r.barang?.satuan ?? "-"})</td>
-                    <td>{r.jumlah}</td>
-                    <td>{r.sumber ?? "-"}</td>
-                    <td>{r.admin?.nama ?? "-"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div style={{ overflowX: "auto" }}>
+            <table className="app-table" style={{ width: "100%", fontSize: "0.9rem" }}>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Barang</th>
+                  <th>Jumlah</th>
+                  <th>Sumber</th>
+                  <th>Oleh</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.length === 0 ? (
+                  <tr><td colSpan={5} className="app-muted">Belum ada data restock.</td></tr>
+                ) : (
+                  list.map((r) => (
+                    <tr key={r.id}>
+                      <td>{r.tanggal ? new Date(r.tanggal).toLocaleDateString("id-ID") : "-"}</td>
+                      <td>{r.barang?.nama ?? "-"} ({r.barang?.satuan ?? "-"})</td>
+                      <td>{r.jumlah}</td>
+                      <td>{r.sumber ?? "-"}</td>
+                      <td>{r.admin?.nama ?? "-"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tombol export diminta: di bawah tabel, warna hijau */}
+          <div style={{ marginTop: "0.9rem" }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{
+                background: "#22c55e",
+                borderColor: "#16a34a",
+                color: "#fff",
+              }}
+              disabled={list.length === 0}
+              onClick={() => {
+                const rows = [["Tanggal", "Barang", "Jumlah", "Satuan", "Sumber", "Dicatat oleh"]];
+                for (const r of list) {
+                  rows.push([
+                    r.tanggal ? new Date(r.tanggal).toLocaleDateString("id-ID") : "",
+                    r.barang?.nama ?? "",
+                    String(r.jumlah ?? ""),
+                    r.barang?.satuan ?? "",
+                    r.sumber ?? "",
+                    r.admin?.nama ?? "",
+                  ]);
+                }
+                downloadCsv(`pemasukan_restock_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+              }}
+            >
+              Export CSV
+            </button>
+          </div>
+        </>
       )}
     </main>
   );

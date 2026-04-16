@@ -6,6 +6,24 @@ import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
 
 const initialForm = { kode: "", nama: "", satuan: "", stok: "", stokMinimum: "", deskripsi: "", gambarUrl: "" };
 
+function downloadCsv(filename, rows) {
+  const escape = (s) => {
+    const str = (s ?? "").toString();
+    if (/[",\n]/.test(str)) return `"${str.replaceAll('"', '""')}"`;
+    return str;
+  };
+  const csv = rows.map((r) => r.map(escape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminBarang() {
   const [barang, setBarang] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -176,70 +194,104 @@ export default function AdminBarang() {
       ) : barang.length === 0 ? (
         <p className="app-muted">Belum ada barang.</p>
       ) : (
-        <div className="table-wrap">
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Kode</th>
-                <th>Nama</th>
-                <th>Satuan</th>
-                <th>Stok</th>
-                <th>Deskripsi</th>
-                <th>Gambar</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {barang.map((b, i) => (
-                <tr key={b.id}>
-                  <td>{i + 1}</td>
-                  <td>{b.kode || "-"}</td>
-                  <td>{b.nama}</td>
-                  <td>{b.satuan}</td>
-                  <td>{b.stok}</td>
-                  <td>{b.deskripsi || "-"}</td>
-                  <td>
-                    {b.gambarUrl ? (
-                      <a href={resolveBarangImageSrc(b.gambarUrl)} target="_blank" rel="noopener noreferrer">
-                        Lihat
-                      </a>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-sm btn-edit"
-                      onClick={() => openEdit(b)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-sm btn-danger"
-                      onClick={() => setDeleteId(b.id)}
-                    >
-                      Hapus
-                    </button>
-                    {deleteId === b.id && (
-                      <span className="confirm-wrap">
-                        Hapus?{" "}
-                        <button type="button" onClick={() => handleDelete(b.id)}>
-                          Ya
-                        </button>
-                        <button type="button" onClick={() => setDeleteId(null)}>
-                          Batal
-                        </button>
-                      </span>
-                    )}
-                  </td>
+        <>
+          <div className="table-wrap">
+            <table className="app-table">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Kode</th>
+                  <th>Nama</th>
+                  <th>Satuan</th>
+                  <th>Stok</th>
+                  <th>Deskripsi</th>
+                  <th>Gambar</th>
+                  <th>Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {barang.map((b, i) => (
+                  <tr key={b.id}>
+                    <td>{i + 1}</td>
+                    <td>{b.kode || "-"}</td>
+                    <td>{b.nama}</td>
+                    <td>{b.satuan}</td>
+                    <td>{b.stok}</td>
+                    <td>{b.deskripsi || "-"}</td>
+                    <td>
+                      {b.gambarUrl ? (
+                        <a href={resolveBarangImageSrc(b.gambarUrl)} target="_blank" rel="noopener noreferrer">
+                          Lihat
+                        </a>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn-sm btn-edit"
+                        onClick={() => openEdit(b)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-sm btn-danger"
+                        onClick={() => setDeleteId(b.id)}
+                      >
+                        Hapus
+                      </button>
+                      {deleteId === b.id && (
+                        <span className="confirm-wrap">
+                          Hapus?{" "}
+                          <button type="button" onClick={() => handleDelete(b.id)}>
+                            Ya
+                          </button>
+                          <button type="button" onClick={() => setDeleteId(null)}>
+                            Batal
+                          </button>
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tombol export diminta: di bawah tabel, warna hijau */}
+          <div style={{ marginTop: "0.9rem" }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              style={{
+                background: "#22c55e",
+                borderColor: "#16a34a",
+                color: "#fff",
+              }}
+              onClick={() => {
+                const rows = [
+                  ["Kode", "Nama", "Satuan", "Stok", "Stok Minimum", "Deskripsi", "Gambar URL"],
+                ];
+                for (const b of barang) {
+                  rows.push([
+                    b.kode || "",
+                    b.nama || "",
+                    b.satuan || "",
+                    String(b.stok ?? ""),
+                    b.stokMinimum == null ? "" : String(b.stokMinimum),
+                    b.deskripsi || "",
+                    b.gambarUrl || "",
+                  ]);
+                }
+                downloadCsv(`stok_barang_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+              }}
+            >
+              Export CSV
+            </button>
+          </div>
+        </>
       )}
 
       {modalOpen && (

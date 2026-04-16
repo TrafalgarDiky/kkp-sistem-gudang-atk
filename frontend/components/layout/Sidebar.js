@@ -261,12 +261,12 @@ export default function Sidebar({ user, mobileOpen, onClose }) {
               <i className="fa-solid fa-pen-to-square" />
               <span>Minta Barang</span>
             </Link>
+            <Link href="/permintaan/tugas" className={linkClass("/permintaan/tugas")} onClick={handleNav}>
+              <i className="fa-solid fa-truck" />
+              <span>Tugas Petugas</span>
+            </Link>
 
             <div className="sidebar-group-label">LAPORAN &amp; SISTEM</div>
-            <Link href="/laporan" className={linkClass("/laporan")} onClick={handleNav}>
-              <i className="fa-solid fa-chart-line" />
-              <span>Laporan</span>
-            </Link>
             <Link href="/users" className={linkClass("/users")} onClick={handleNav}>
               <i className="fa-solid fa-users-gear" />
               <span>Manajemen User</span>
