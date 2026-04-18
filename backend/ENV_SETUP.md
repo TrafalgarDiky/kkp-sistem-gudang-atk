@@ -103,10 +103,50 @@ Barang lama dengan path `/uploads/...` yang file-nya sudah tidak ada: **edit bar
 
 ## Lupa password & SMTP (email)
 
-Fitur **Lupa password** mengirim tautan ke `FRONTEND_URL/reset-password?token=...`.
+Alur sudah tersedia di kode: **POST `/api/auth/forgot-password`** → email berisi tautan **`FRONTEND_URL/reset-password?token=...`** → user isi password baru → **POST `/api/auth/reset-password`**.
 
-- **Development tanpa SMTP:** setelah `POST /api/auth/forgot-password`, **buka terminal backend** — tautan lengkap dicetak di log.
-- **Production / uji email nyata:** isi `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` (Gmail: pakai [App Password](https://support.google.com/accounts/answer/185833), bukan password akun biasa).
+- **Development tanpa SMTP:** setelah lupa password, **buka log terminal backend** — tautan reset ikut dicetak (lihat `src/utils/sendMail.js`).
+- **Tanpa SMTP di production:** respons API tetap sukses (demi privasi), tetapi **email tidak terkirim**. Cek log Railway: ada peringatan SMTP tidak dikonfigurasi.
+
+### Variabel environment (backend)
+
+| Variabel | Wajib untuk email? | Keterangan |
+|----------|-------------------|------------|
+| `FRONTEND_URL` | Sangat disarankan | URL situs user (mis. `https://app-kamu.vercel.app`). **Tanpa slash di akhir.** Dipakai membangun tautan di email. Jangan pakai `http://localhost:3000` di production. |
+| `SMTP_HOST` | Ya | Contoh Gmail: `smtp.gmail.com` |
+| `SMTP_PORT` | Opsional | Default `587`. Gmail bisa `587` (STARTTLS) atau `465` (SSL). |
+| `SMTP_USER` | Ya | Alamat email pengirim (biasanya sama dengan akun SMTP). |
+| `SMTP_PASS` | Ya | **Bukan** password login biasa untuk Gmail — pakai **App Password**. |
+| `SMTP_FROM` | Opsional | Tampilan "Dari" di inbox, mis. `Gudang ATK <email@gmail.com>`. Default: `SMTP_USER`. |
+
+### Gmail (paling umum untuk KKP / uji cepat)
+
+1. Akun Google → **Keamanan** → aktifkan **Verifikasi 2 langkah**.
+2. **Sandi aplikasi** → buat sandi untuk "Mail" / perangkat lain → salin **16 karakter** (tanpa spasi) ke `SMTP_PASS`.
+3. Di Railway (service **backend**), tambahkan variabel seperti:
+
+```env
+FRONTEND_URL=https://domain-frontend-kamu.vercel.app
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=email.kamu@gmail.com
+SMTP_PASS=xxxx xxxx xxxx xxxx
+SMTP_FROM=Gudang ATK <email.kamu@gmail.com>
+```
+
+4. **Redeploy** service backend setelah menyimpan variabel.
+5. Uji dari halaman **Lupa password** di frontend production; cek juga folder **Spam**.
+
+### Railway: checklist cepat
+
+- [ ] `FRONTEND_URL` = URL frontend **production** (bukan localhost).
+- [ ] `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` terisi (di UI Railway jangan tambah kutip ganda di luar nilai).
+- [ ] Frontend memanggil API backend yang benar (`NEXT_PUBLIC_API_URL` atau setara ke URL Railway backend).
+- [ ] Setelah deploy, coba lupa password dengan email yang **sudah terdaftar** di tabel `users`.
+
+### Penyedia lain
+
+- **Brevo (Sendinblue), Mailgun, Resend**, dll.: ikut dokumentasi mereka untuk **SMTP host, port, user, password/API key**.
 
 ## Contoh Setup PostgreSQL Lokal
 

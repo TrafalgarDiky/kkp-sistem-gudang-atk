@@ -16,6 +16,10 @@ export async function sendPasswordResetEmail(to, resetUrl) {
       console.log(`Email: ${to}`);
       console.log(`Buka di browser: ${resetUrl}`);
       console.log('========================================================\n');
+    } else {
+      console.warn(
+        '[sendMail] Email reset tidak dikirim: SMTP_HOST / SMTP_USER kosong. Set SMTP_* + SMTP_PASS + FRONTEND_URL di Railway (lihat backend/ENV_SETUP.md — Lupa password).',
+      );
     }
     return { sent: false, reason: 'no_smtp' };
   }
