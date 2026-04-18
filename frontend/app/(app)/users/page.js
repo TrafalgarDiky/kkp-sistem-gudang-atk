@@ -1,44 +1,77 @@
 "use client";
 
 /**
- * User & Role — Admin: daftar user, verifikasi (pending), ubah role & status.
- * GET /api/auth/users, PATCH /api/auth/users/:id (role, statusAkun), PATCH /api/auth/users/:id/verify
+ * Manajemen User — Admin.
+ * - Daftar semua user
+ * - Verifikasi user baru (BELUM_VERIFIKASI)
+ * - Ubah role & status via modal
+ * - Self-guard: admin tidak bisa menonaktifkan / ubah role akunnya sendiri.
+ *
+ * Endpoints:
+ *   GET   /api/auth/users
+ *   PATCH /api/auth/users/:id          (body: { role?, statusAkun? })
+ *   PATCH /api/auth/users/:id/verify   (body: { status: "AKTIF" | "DITOLAK" })
  */
 import { useEffect, useState } from "react";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
+import { UserCell } from "@/components/ui";
+
+// ====================== Helpers ======================
+
+const labelRole = (r) =>
+  ({ ADMIN: "Admin", STAFF: "Staff", PETUGAS: "Petugas" })[r] || r;
+
+const labelStatus = (s) =>
+  ({ AKTIF: "Aktif", DITOLAK: "Nonaktif", BELUM_VERIFIKASI: "Belum verifikasi" })[s] || s;
+
+/** Mapping role -> pill variant (warna) */
+const roleVariant = (r) => (r === "ADMIN" ? "info" : "muted");
+
+/** Mapping status akun -> pill variant */
+const statusVariant = (s) => {
+  if (s === "AKTIF") return "success";
+  if (s === "BELUM_VERIFIKASI") return "warning";
+  if (s === "DITOLAK") return "danger";
+  return "muted";
+};
+
+// ====================== Page ======================
 
 export default function UsersPage() {
-  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Modal Edit
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ role: "", statusAkun: "" });
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [modalError, setModalError] = useState("");
 
+  // Loading per-row untuk aksi Verifikasi / Nonaktif / Aktifkan
+  const [rowLoadingId, setRowLoadingId] = useState(null);
+
+  // Ambil user yang sedang login dari localStorage
   useEffect(() => {
-    const raw =
-      typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
     if (raw) {
-      try {
-        setUser(JSON.parse(raw));
-      } catch (_) {}
+      try { setCurrentUser(JSON.parse(raw)); } catch (_) {}
     }
   }, []);
+
+  // ====================== Fetch ======================
 
   const fetchUsers = async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(apiUrl("/api/auth/users"), {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(apiUrl("/api/auth/users"), { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success) setUsers(data.data?.users || []);
       else setError(data.message || "Gagal memuat user");
-    } catch (err) {
+    } catch (_) {
       setError("Koneksi gagal.");
     } finally {
       setLoading(false);
@@ -46,31 +79,43 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    if (user?.role !== "ADMIN") return;
+    if (currentUser?.role !== "ADMIN") return;
     fetchUsers();
-  }, [user?.role]);
+  }, [currentUser?.role]);
+
+  // ====================== Handlers ======================
 
   const openEdit = (u) => {
     setEditing(u);
     setForm({ role: u.role, statusAkun: u.statusAkun });
+    setModalError("");
     setModalOpen(true);
   };
 
   const closeModal = () => {
+    if (submitLoading) return;
     setModalOpen(false);
     setEditing(null);
+    setModalError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!editing?.id) return;
+
+    // Self-guard di modal juga: jangan sampai admin ubah role/status diri sendiri
+    const isSelf = editing.id === currentUser?.id;
+    if (isSelf && (form.role !== editing.role || form.statusAkun !== editing.statusAkun)) {
+      setModalError("Anda tidak dapat mengubah role atau status akun sendiri.");
+      return;
+    }
+
     setSubmitLoading(true);
-    setError("");
+    setModalError("");
     try {
       const body = {};
       if (form.role !== editing.role) body.role = form.role;
-      if (form.statusAkun !== editing.statusAkun)
-        body.statusAkun = form.statusAkun;
+      if (form.statusAkun !== editing.statusAkun) body.statusAkun = form.statusAkun;
       if (Object.keys(body).length === 0) {
         closeModal();
         setSubmitLoading(false);
@@ -86,18 +131,21 @@ export default function UsersPage() {
         fetchUsers();
         closeModal();
       } else {
-        setError(data.message || "Gagal update user");
+        setModalError(data.message || "Gagal update user");
       }
-    } catch (err) {
-      setError("Koneksi gagal.");
+    } catch (_) {
+      setModalError("Koneksi gagal.");
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleVerify = async (userId, status) => {
+  const handleVerify = async (u, status) => {
+    if (!u?.id) return;
+    setRowLoadingId(u.id);
+    setError("");
     try {
-      const res = await fetch(apiUrl(`/api/auth/users/${userId}/verify`), {
+      const res = await fetch(apiUrl(`/api/auth/users/${u.id}/verify`), {
         method: "PATCH",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -105,261 +153,266 @@ export default function UsersPage() {
       const data = await res.json();
       if (data.success) fetchUsers();
       else setError(data.message || "Gagal verifikasi");
-    } catch (err) {
+    } catch (_) {
       setError("Koneksi gagal.");
+    } finally {
+      setRowLoadingId(null);
     }
   };
 
-  const handleNonaktifkan = async (u) => {
+  const handleToggleAktif = async (u) => {
     if (!u?.id) return;
-    const ok = window.confirm(`Nonaktifkan user "${u.nama}"? User tidak bisa login.`);
+    const nextStatus = u.statusAkun === "AKTIF" ? "DITOLAK" : "AKTIF";
+    const verb = nextStatus === "DITOLAK" ? "nonaktifkan" : "aktifkan kembali";
+    const ok = window.confirm(`Yakin ${verb} user "${u.nama}"?`);
     if (!ok) return;
-    setConfirmLoading(true);
+
+    setRowLoadingId(u.id);
     setError("");
     try {
       const res = await fetch(apiUrl(`/api/auth/users/${u.id}`), {
         method: "PATCH",
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ statusAkun: "DITOLAK" }),
+        body: JSON.stringify({ statusAkun: nextStatus }),
       });
       const data = await res.json();
       if (data.success) fetchUsers();
-      else setError(data.message || "Gagal menonaktifkan user");
+      else setError(data.message || `Gagal ${verb} user`);
     } catch (_) {
       setError("Koneksi gagal.");
     } finally {
-      setConfirmLoading(false);
+      setRowLoadingId(null);
     }
   };
 
-  const handleAktifkan = async (u) => {
-    if (!u?.id) return;
-    const ok = window.confirm(`Aktifkan kembali user "${u.nama}"?`);
-    if (!ok) return;
-    setConfirmLoading(true);
-    setError("");
-    try {
-      const res = await fetch(apiUrl(`/api/auth/users/${u.id}`), {
-        method: "PATCH",
-        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ statusAkun: "AKTIF" }),
-      });
-      const data = await res.json();
-      if (data.success) fetchUsers();
-      else setError(data.message || "Gagal mengaktifkan user");
-    } catch (_) {
-      setError("Koneksi gagal.");
-    } finally {
-      setConfirmLoading(false);
-    }
-  };
+  // ====================== Guards ======================
 
-  if (user?.role !== "ADMIN") {
+  if (currentUser && currentUser.role !== "ADMIN") {
     return (
       <main className="app-content">
-        <h1>User & Role</h1>
-        <p>Anda tidak memiliki akses ke halaman ini.</p>
+        <h1>Manajemen User</h1>
+        <p className="app-muted">Anda tidak memiliki akses ke halaman ini.</p>
       </main>
     );
   }
 
-  const labelStatus = (s) =>
-    ({
-      AKTIF: "Aktif",
-      DITOLAK: "Nonaktif",
-      BELUM_VERIFIKASI: "Belum verifikasi",
-    })[s] || s;
-  const labelRole = (r) =>
-    ({ ADMIN: "Admin", STAFF: "Staff", PETUGAS: "Petugas" })[r] || r;
+  // ====================== Render ======================
 
   return (
     <main className="app-content">
       <h1>Manajemen User</h1>
-      <p className="app-muted" style={{ marginBottom: "1rem" }}>
-        Kelola akun: verifikasi user baru, ubah role (assign role), dan nonaktifkan akun.
+      <p className="app-muted" style={{ marginBottom: "1rem", fontSize: "0.88rem" }}>
+        Verifikasi user baru, ubah role, dan nonaktifkan akun.
       </p>
 
-      {error && (
-        <p style={{ color: "var(--danger)", marginBottom: "0.5rem" }}>
-          {error}
-        </p>
-      )}
+      {error && <p className="app-error">{error}</p>}
 
       {loading ? (
         <p className="app-muted">Memuat...</p>
+      ) : users.length === 0 ? (
+        <div className="empty-state">
+          <i className="fa-solid fa-users" />
+          <div className="empty-state-title">Belum ada user</div>
+          <p className="empty-state-sub">User akan muncul setelah ada yang registrasi.</p>
+        </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            className="app-table"
-            style={{ width: "100%", fontSize: "0.9rem" }}
-          >
+        <div className="table-wrap">
+          <table className="app-table">
             <thead>
               <tr>
                 <th>Nama</th>
                 <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Aksi</th>
+                <th style={{ width: 150 }}>Divisi</th>
+                <th style={{ width: 110 }}>Role</th>
+                <th style={{ width: 150 }}>Status</th>
+                <th style={{ width: 180, textAlign: "right" }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="app-muted">
-                    Belum ada user.
-                  </td>
-                </tr>
-              ) : (
-                users.map((u) => (
+              {users.map((u) => {
+                const isSelf = u.id === currentUser?.id;
+                const isRowLoading = rowLoadingId === u.id;
+
+                return (
                   <tr key={u.id}>
-                    <td>{u.nama}</td>
-                    <td>{u.email}</td>
-                    <td>{labelRole(u.role)}</td>
-                    <td>{labelStatus(u.statusAkun)}</td>
                     <td>
-                      {u.statusAkun === "BELUM_VERIFIKASI" && (
-                        <>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <UserCell name={u.nama} />
+                        {isSelf && (
+                          <span className="pill pill-info" style={{ fontSize: "0.68rem" }}>
+                            Anda
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>{u.email}</td>
+                    <td>
+                      {u.divisi ? (
+                        <span>
+                          <i className="fa-solid fa-building app-muted" style={{ marginRight: 6, fontSize: "0.78rem" }} />
+                          {u.divisi}
+                        </span>
+                      ) : (
+                        <span className="app-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className={`pill pill-${roleVariant(u.role)}`}>
+                        {labelRole(u.role)}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`pill pill-${statusVariant(u.statusAkun)}`}>
+                        {labelStatus(u.statusAkun)}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <span className="row-actions">
+                        {/* Verifikasi: hanya untuk BELUM_VERIFIKASI */}
+                        {u.statusAkun === "BELUM_VERIFIKASI" && (
+                          <>
+                            <button
+                              type="button"
+                              className="icon-btn icon-btn-edit"
+                              onClick={() => handleVerify(u, "AKTIF")}
+                              disabled={isRowLoading}
+                              title="Setujui user"
+                            >
+                              <i className="fa-solid fa-check" />
+                            </button>
+                            <button
+                              type="button"
+                              className="icon-btn icon-btn-danger"
+                              onClick={() => handleVerify(u, "DITOLAK")}
+                              disabled={isRowLoading}
+                              title="Tolak user"
+                            >
+                              <i className="fa-solid fa-xmark" />
+                            </button>
+                          </>
+                        )}
+
+                        {/* Toggle aktif/nonaktif: untuk AKTIF atau DITOLAK, BUKAN diri sendiri */}
+                        {u.statusAkun !== "BELUM_VERIFIKASI" && (
                           <button
                             type="button"
-                            className="btn btn-sm"
-                            style={{ marginRight: "0.5rem" }}
-                            onClick={() => handleVerify(u.id, "AKTIF")}
+                            className={`icon-btn ${u.statusAkun === "AKTIF" ? "icon-btn-danger" : "icon-btn-edit"}`}
+                            onClick={() => handleToggleAktif(u)}
+                            disabled={isSelf || isRowLoading}
+                            title={
+                              isSelf
+                                ? "Tidak dapat menonaktifkan akun sendiri"
+                                : u.statusAkun === "AKTIF"
+                                ? "Nonaktifkan user"
+                                : "Aktifkan kembali user"
+                            }
                           >
-                            Setujui
+                            <i className={`fa-solid ${u.statusAkun === "AKTIF" ? "fa-user-slash" : "fa-user-check"}`} />
                           </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-danger"
-                            onClick={() => handleVerify(u.id, "DITOLAK")}
-                          >
-                            Tolak
-                          </button>{" "}
-                        </>
-                      )}
-                      {u.statusAkun === "AKTIF" && (
+                        )}
+
+                        {/* Edit selalu ada (untuk self pun boleh buka, tapi submit akan di-guard) */}
                         <button
                           type="button"
-                          className="btn btn-sm btn-danger"
-                          style={{ marginRight: "0.5rem" }}
-                          onClick={() => handleNonaktifkan(u)}
-                          disabled={confirmLoading}
-                          title="Set status akun menjadi Nonaktif (tidak bisa login)"
+                          className="icon-btn icon-btn-edit"
+                          onClick={() => openEdit(u)}
+                          disabled={isRowLoading}
+                          title="Edit role & status"
                         >
-                          {confirmLoading ? "..." : "Nonaktifkan"}
+                          <i className="fa-solid fa-pen" />
                         </button>
-                      )}
-                      {u.statusAkun === "DITOLAK" && (
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          style={{ marginRight: "0.5rem" }}
-                          onClick={() => handleAktifkan(u)}
-                          disabled={confirmLoading}
-                          title="Aktifkan kembali (bisa login)"
-                        >
-                          {confirmLoading ? "..." : "Aktifkan"}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => openEdit(u)}
-                      >
-                        Edit
-                      </button>
+                      </span>
                     </td>
                   </tr>
-                ))
-              )}
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {modalOpen && editing && (
-        <div
-          className="modal-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={closeModal}
-        >
-          <div
-            className="modal-content"
-            style={{
-              background: "var(--bg)",
-              padding: "1.5rem",
-              borderRadius: "8px",
-              minWidth: "320px",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ marginBottom: "1rem" }}>Edit User: {editing.nama}</h3>
-            <form onSubmit={handleSubmit}>
-              <label style={{ display: "block", marginBottom: "0.75rem" }}>
-                Role
+      {/* ============ MODAL: EDIT USER ============ */}
+      {modalOpen && editing && (() => {
+        const isSelf = editing.id === currentUser?.id;
+        return (
+          <div className="modal-overlay" onClick={closeModal}>
+            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Edit User</h2>
+                <button
+                  type="button"
+                  className="modal-close"
+                  onClick={closeModal}
+                  disabled={submitLoading}
+                  title="Tutup"
+                >
+                  <i className="fa-solid fa-xmark" />
+                </button>
+              </div>
+              <p className="modal-subtitle">
+                <strong>{editing.nama}</strong> · {editing.email}
+              </p>
+              <div className="modal-divider" />
+
+              <form onSubmit={handleSubmit}>
+                <label>Role <span className="required">*</span></label>
                 <select
                   value={form.role}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, role: e.target.value }))
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "0.5rem",
-                    marginTop: "0.25rem",
-                  }}
+                  onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                  disabled={isSelf}
                 >
                   <option value="ADMIN">Admin</option>
                   <option value="STAFF">Staff</option>
                   <option value="PETUGAS">Petugas</option>
                 </select>
-              </label>
-              <label style={{ display: "block", marginBottom: "0.75rem" }}>
-                Status Akun
+
+                <label>Status Akun <span className="required">*</span></label>
                 <select
                   value={form.statusAkun}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, statusAkun: e.target.value }))
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "0.5rem",
-                    marginTop: "0.25rem",
-                  }}
+                  onChange={(e) => setForm((f) => ({ ...f, statusAkun: e.target.value }))}
+                  disabled={isSelf}
                 >
                   <option value="AKTIF">Aktif</option>
-                  <option value="DITOLAK">Ditolak</option>
+                  <option value="DITOLAK">Nonaktif</option>
                   <option value="BELUM_VERIFIKASI">Belum verifikasi</option>
                 </select>
-              </label>
-              <div
-                style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}
-              >
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={submitLoading}
-                >
-                  {submitLoading ? "Menyimpan..." : "Simpan"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={closeModal}
-                >
-                  Batal
-                </button>
-              </div>
-            </form>
+
+                {isSelf && (
+                  <div className="form-error" style={{ background: "#fff7ed", borderColor: "#fed7aa", color: "#b45309" }}>
+                    <i className="fa-solid fa-shield-halved" />
+                    <span>Ini akun Anda sendiri — role dan status terkunci untuk mencegah kunci-diri.</span>
+                  </div>
+                )}
+
+                {modalError && (
+                  <div className="form-error">
+                    <i className="fa-solid fa-circle-exclamation" />
+                    <span>{modalError}</span>
+                  </div>
+                )}
+
+                <div className="modal-actions-block">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={closeModal}
+                    disabled={submitLoading}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={submitLoading || isSelf}
+                  >
+                    {submitLoading ? "Menyimpan..." : "Simpan Perubahan"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </main>
   );
 }

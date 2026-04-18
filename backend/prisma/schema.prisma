@@ -73,7 +73,7 @@ model Barang {
 // ============================================
 model Permintaan {
   id               String      @id @default(uuid())
-  nomor            Int?        // Nomor urut permintaan (untuk laporan/keterangan)
+  kode             String?     @unique @map("kode") // Kode bisnis, mis. P-0001 (selaras gaya kode barang A-0001)
   pemintaId        String      @map("peminta_id")
   statusAdmin      StatusAdmin @default(MENUNGGU_ADMIN) @map("status_admin")
   approvedBy       String?     @map("approved_by")

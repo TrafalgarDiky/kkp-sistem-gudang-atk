@@ -286,6 +286,48 @@ h2 {
   color: var(--auth-text-secondary);
 }
 
+/* Baris: centang "Ingat email" + link Lupa password */
+.auth-login-extras {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 4px;
+}
+
+.remember-me {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--auth-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+  width: auto;
+  min-width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--auth-primary);
+}
+
+.auth-login-extras .forgot {
+  font-size: 14px;
+  margin-top: 0;
+  color: var(--auth-text-secondary);
+  text-decoration: none;
+}
+
+.auth-login-extras .forgot:hover {
+  color: var(--auth-primary);
+  text-decoration: underline;
+}
+
 .sso a {
   display: grid;
   place-items: center;

@@ -123,6 +123,7 @@ export default function PengeluaranPage() {
       const peminta = safeText(p.peminta?.nama).toLowerCase();
       const petugas = safeText(p.tugasPetugas?.[0]?.petugas?.nama).toLowerCase();
       const catatan = safeText(p.catatanAdmin).toLowerCase();
+      const kode = safeText(p.kode).toLowerCase();
       const items = (p.items || [])
         .map((it) => `${safeText(it.barang?.nama)} ${safeText(it.barang?.satuan)} ${it.jumlah}`.toLowerCase())
         .join(" ");
@@ -130,6 +131,7 @@ export default function PengeluaranPage() {
         peminta.includes(q) ||
         petugas.includes(q) ||
         catatan.includes(q) ||
+        kode.includes(q) ||
         items.includes(q)
       );
     });
@@ -179,7 +181,7 @@ export default function PengeluaranPage() {
             type="text"
             value={filter.q}
             onChange={(e) => setFilter((f) => ({ ...f, q: e.target.value }))}
-            placeholder="mis. kertas, andi, budi..."
+            placeholder="mis. kertas, P-0001, peminta..."
             style={{ width: "100%", marginTop: "0.25rem", padding: "0.45rem" }}
           />
         </label>
@@ -191,7 +193,17 @@ export default function PengeluaranPage() {
           className="btn btn-secondary"
           onClick={() => {
             const rows = [
-              ["Tanggal keluar", "Peminta", "Diantar oleh", "Disetujui oleh", "Barang", "Jumlah", "Satuan", "Catatan"],
+              [
+                "Tanggal keluar",
+                "Kode permintaan",
+                "Peminta",
+                "Diantar oleh",
+                "Disetujui oleh",
+                "Barang",
+                "Jumlah",
+                "Satuan",
+                "Catatan",
+              ],
             ];
             for (const p of filtered) {
               const petugas = p.tugasPetugas?.[0]?.petugas?.nama ?? "-";
@@ -199,6 +211,7 @@ export default function PengeluaranPage() {
               for (const it of p.items || []) {
                 rows.push([
                   toIdDateTime(p.updatedAt),
+                  p.kode ?? "",
                   formatNamaDivisi(p.peminta),
                   petugas,
                   approver,
@@ -230,6 +243,7 @@ export default function PengeluaranPage() {
               <thead>
                 <tr>
                   <th>Tanggal keluar</th>
+                  <th>Kode</th>
                   <th>Peminta</th>
                   <th>Diantar oleh</th>
                   <th>Disetujui oleh</th>
@@ -249,6 +263,16 @@ export default function PengeluaranPage() {
                   return (
                     <tr key={p.id}>
                       <td>{toIdDateTime(p.updatedAt)}</td>
+                      <td>
+                        <span
+                          style={{
+                            fontFamily: "ui-monospace, monospace",
+                            fontSize: "0.82rem",
+                          }}
+                        >
+                          {p.kode ?? "—"}
+                        </span>
+                      </td>
                       <td>{formatNamaDivisi(p.peminta)}</td>
                       <td>{petugas}</td>
                       <td>{approver}</td>
@@ -278,7 +302,17 @@ export default function PengeluaranPage() {
               disabled={filtered.length === 0}
               onClick={() => {
                 const rows = [
-                  ["Tanggal keluar", "Peminta", "Diantar oleh", "Disetujui oleh", "Barang", "Jumlah", "Satuan", "Catatan"],
+                  [
+                    "Tanggal keluar",
+                    "Kode permintaan",
+                    "Peminta",
+                    "Diantar oleh",
+                    "Disetujui oleh",
+                    "Barang",
+                    "Jumlah",
+                    "Satuan",
+                    "Catatan",
+                  ],
                 ];
                 for (const p of filtered) {
                   const petugas = p.tugasPetugas?.[0]?.petugas?.nama ?? "-";
@@ -286,6 +320,7 @@ export default function PengeluaranPage() {
                   for (const it of p.items || []) {
                     rows.push([
                       toIdDateTime(p.updatedAt),
+                      p.kode ?? "",
                       formatNamaDivisi(p.peminta),
                       petugas,
                       approver,
@@ -311,6 +346,10 @@ export default function PengeluaranPage() {
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <h2>Detail Pengeluaran</h2>
             <p><strong>Tanggal keluar:</strong> {toIdDateTime(detail.updatedAt)}</p>
+            <p>
+              <strong>Kode permintaan:</strong>{" "}
+              <span style={{ fontFamily: "ui-monospace, monospace" }}>{detail.kode ?? "—"}</span>
+            </p>
             <p><strong>Peminta:</strong> {detail.peminta?.nama ?? "-"}</p>
             <p><strong>Divisi:</strong> {detail.peminta?.divisi ?? "-"}</p>
             <p><strong>Diantar oleh:</strong> {detail.tugasPetugas?.[0]?.petugas?.nama ?? "Belum ada"}</p>

@@ -1,6 +1,26 @@
 import prisma from "../config/database.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 
+/** Kode permintaan manusiawi: P-0001, P-0042, … (huruf P = permintaan; angka 4 digit seperti kode barang A-0001). */
+function formatKodePermintaan(urut) {
+  return `P-${String(urut).padStart(4, "0")}`;
+}
+
+/** Urutan berikutnya dari kode P-xxxx yang sudah ada (sama ide dengan generateNextKodeBarang). */
+async function generateNextKodePermintaan(tx) {
+  const last = await tx.permintaan.findFirst({
+    where: { kode: { not: null } },
+    orderBy: { kode: "desc" },
+    select: { kode: true },
+  });
+  if (!last?.kode) {
+    return formatKodePermintaan(1);
+  }
+  const match = last.kode.match(/^P-(\d+)$/);
+  const lastNum = match ? Number(match[1]) : 0;
+  return formatKodePermintaan(lastNum + 1);
+}
+
 /** GET /api/permintaan — list permintaan (Staff: punya sendiri, Admin/Petugas: semua) */
 export async function listPermintaan(req, res) {
   try {
@@ -95,10 +115,13 @@ export async function createPermintaan(req, res) {
     }
 
     const permintaan = await prisma.$transaction(async (tx) => {
+      const kode = await generateNextKodePermintaan(tx);
+
       const p = await tx.permintaan.create({
         // Auto-approve: langsung siap diambil petugas tanpa approval admin
         data: {
           pemintaId: userId,
+          kode,
           statusAdmin: "DISETUJUI_ADMIN",
           approvedAt: new Date(),
           catatanAdmin: "Auto-approve sistem",

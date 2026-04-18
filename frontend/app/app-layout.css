@@ -15,6 +15,15 @@
   --sidebar-text: #cbd5e1;
   --sidebar-active-text: #e2e8f0;
   --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  /* ===== Semantic colors (dipakai pill, button danger, dsb.) ===== */
+  --danger: #dc2626;          /* red-600 */
+  --danger-hover: #b91c1c;    /* red-700 */
+  --danger-soft: #fee2e2;     /* red-100 */
+  --success: #16a34a;         /* green-600 */
+  --success-hover: #15803d;   /* green-700 */
+  --warning: #f59e0b;         /* amber-500 */
+  --info: #0ea5e9;            /* sky-500 */
 }
 
 .app-shell {
@@ -385,6 +394,15 @@
   border-radius: 12px;
 }
 
+button.sidebar-link {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
 .sidebar-link:hover {
   background: rgba(148, 163, 184, 0.14);
   color: #f8fafc;
@@ -401,6 +419,18 @@
   width: 18px;
   text-align: center;
   font-size: 0.95rem;
+}
+
+/* Spacer: dorong elemen setelahnya ke bawah sidebar (butuh parent flex column) */
+.sidebar-spacer {
+  margin-top: auto;
+}
+
+/* Garis pemisah tipis sebelum tombol Log Out */
+.sidebar-divider {
+  height: 1px;
+  margin: 0.6rem 0.65rem 0.4rem;
+  background: rgba(148, 163, 184, 0.18);
 }
 
 /* Area konten */
@@ -571,6 +601,39 @@
   background: rgba(248, 113, 113, 0.15);
 }
 
+/**
+ * Tombol aksi destruktif ukuran normal (dipakai di modal konfirmasi,
+ * modal Detail, dll). Warna solid merah dengan teks putih.
+ *
+ * Bentuk PILL (oval penuh) — mengikuti .btn-primary & .btn-secondary
+ * supaya visual konsisten saat tombol-tombol berjejer di modal.
+ */
+.btn-danger {
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 0;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.25);
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(185, 28, 28, 0.28);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .app-error {
   color: #dc2626;
   margin-bottom: 1rem;
@@ -694,6 +757,1370 @@
   display: inline-block;
   font-size: 0.78rem;
   color: var(--accent, #475569);
+}
+
+/* ================== DASHBOARD HELPERS ================== */
+
+/* Hero / greeting card di atas dashboard */
+.dash-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.2rem;
+  background: linear-gradient(135deg, #eef2ff 0%, #faf5ff 100%);
+  border: 1px solid #e0e7ff;
+  border-radius: 18px;
+  flex-wrap: wrap;
+}
+
+.dash-hero-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e1b4b;
+}
+
+.dash-hero-sub {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.dash-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+/* Tombol kecil ikon (mis. refresh) */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: #475569;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--surface-soft);
+  transform: translateY(-1px);
+}
+
+.btn-icon:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Section title kecil (lebih halus dari h1) */
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0 0 0.6rem;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+/* Status pill warna-warni */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+.pill-warning { background: #fff7ed; color: #b45309; border-color: #fde4bf; }
+.pill-info    { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.pill-success { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+.pill-muted   { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.pill-danger  { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+
+/* Avatar inisial (bulat) */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  background: var(--avatar-bg, #6366f1);
+  letter-spacing: 0.02em;
+}
+
+.user-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.user-cell-name {
+  font-weight: 500;
+  color: var(--text, #1f2937);
+}
+
+/* Empty state: ikon besar + teks ramah */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 1.6rem 1rem;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  text-align: center;
+  color: #64748b;
+}
+
+.empty-state i {
+  font-size: 1.6rem;
+  color: #94a3b8;
+}
+
+.empty-state-title {
+  font-weight: 600;
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.empty-state-sub {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Grid 2-kolom untuk panel bawah dashboard */
+.dash-two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1rem;
+}
+
+/* ================== LIST PAGE TOOLBAR ================== */
+
+/* Toolbar atas halaman list: judul kiri, search tengah, action kanan */
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.list-toolbar h1 {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.list-toolbar-spacer {
+  flex: 1;
+}
+
+.list-toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Search box dengan ikon di dalam */
+.search-box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 220px;
+  flex: 1;
+  max-width: 360px;
+}
+
+.search-box i {
+  position: absolute;
+  left: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.55rem 0.7rem 0.55rem 2.1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.88rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
+}
+
+.search-box-clear {
+  position: absolute;
+  right: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.search-box-clear:hover { color: #475569; }
+
+/* ================== THUMBNAIL ================== */
+
+.thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.thumb:hover { transform: scale(1.05); }
+
+.thumb-placeholder {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* ================== STOCK BADGE ================== */
+
+.stock-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.stock-num {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.stock-badge-low    { background: #fff7ed; color: #b45309; border-color: #fde4bf; }
+.stock-badge-empty  { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.stock-badge-ok     { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+
+/* ================== ICON ACTION BUTTONS ================== */
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+  font-size: 0.85rem;
+}
+
+.icon-btn:hover { transform: translateY(-1px); }
+
+.icon-btn-edit:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.icon-btn-danger:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+/* ================== TEXT TRUNCATE ================== */
+
+.text-truncate {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ================== CONFIRM / LIGHTBOX MODAL ================== */
+
+.modal-sm {
+  max-width: 420px;
+}
+
+.modal-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.6rem;
+}
+
+.modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 1px #fecaca;
+}
+
+.modal-text-center { text-align: center; }
+
+/* Lightbox untuk preview gambar */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  padding: 1.5rem;
+  cursor: zoom-out;
+}
+
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 88vh;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* ================== PAGINATION ================== */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pagination select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+/* ================== PERIODE PRESET BUTTONS ================== */
+
+/**
+ * Tombol-tombol kecil preset periode (7 hari, 30 hari, dst).
+ * Dipakai di toolbar halaman Laporan.
+ */
+.preset-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  padding: 0.2rem;
+  border-radius: 8px;
+}
+
+.preset-btn {
+  border: 0;
+  background: transparent;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.82rem;
+  color: #475569;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s ease, color 0.12s ease;
+  font-family: inherit;
+}
+
+.preset-btn:hover { color: #1e293b; }
+
+.preset-btn.is-active {
+  background: var(--surface);
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+/* ================== RANKING LIST (Top barang / user) ================== */
+
+/**
+ * Card dengan title + list ranking (1, 2, 3, ...) untuk halaman Laporan.
+ */
+.ranking-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+}
+
+.ranking-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ranking-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  flex: 1;
+  color: #0f172a;
+}
+
+.ranking-card-header .ranking-card-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: var(--primary);
+  font-size: 0.78rem;
+}
+
+.ranking-card-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: -0.5rem 0 0.65rem;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  transition: background 0.12s ease;
+}
+
+.ranking-item:hover { background: #f8fafc; }
+
+.ranking-rank {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ranking-item.is-top1 .ranking-rank { background: #fef3c7; color: #b45309; }
+.ranking-item.is-top2 .ranking-rank { background: #e2e8f0; color: #475569; }
+.ranking-item.is-top3 .ranking-rank { background: #fed7aa; color: #c2410c; }
+
+.ranking-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.ranking-name small {
+  color: #94a3b8;
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
+.ranking-value {
+  font-weight: 700;
+  color: #0f172a;
+  flex-shrink: 0;
+}
+
+.ranking-value-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
+/* ================== GRID 2-COL untuk laporan ================== */
+
+.report-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .report-two-col { grid-template-columns: 1fr; }
+}
+
+/* ================== LOG FILTER BAR (multi-filter group) ================== */
+
+/**
+ * Bar berisi beberapa filter yang masing-masing punya label kecil di atasnya.
+ * Dipakai di halaman Log Stok.
+ */
+.log-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.log-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.log-filter-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.log-filter-select {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.88rem;
+  color: var(--text);
+  font-family: inherit;
+  min-width: 180px;
+}
+
+.log-filter-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.btn-link-danger {
+  background: transparent;
+  border: 0;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.55rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.btn-link-danger:hover { background: #fef2f2; }
+
+/* ================== FILTER ROW ================== */
+
+/* Baris kecil untuk filter periode (Dari–Sampai) */
+.filter-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.filter-row input[type="date"] {
+  border: 0;
+  background: transparent;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.82rem;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.filter-row input[type="date"]:focus {
+  outline: none;
+}
+
+.filter-row .filter-row-clear {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem;
+  font-size: 0.78rem;
+}
+
+.filter-row .filter-row-clear:hover {
+  color: #475569;
+}
+
+/* ================== TOAST NOTIFICATION ================== */
+
+/**
+ * Toast notif: popup kecil di pojok kanan atas.
+ * Auto-dismiss diatur dari JS (setTimeout).
+ */
+.toast-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 70;
+  pointer-events: none;
+}
+
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+  font-size: 0.88rem;
+  color: var(--text);
+  min-width: 240px;
+  max-width: 360px;
+  pointer-events: auto;
+  animation: toast-in 0.22s ease-out;
+}
+
+.toast-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.toast-success { border-color: #a7f3d0; }
+.toast-success .toast-icon { background: #22c55e; }
+
+.toast-error { border-color: #fecaca; }
+.toast-error .toast-icon { background: #ef4444; }
+
+.toast-info { border-color: #bfdbfe; }
+.toast-info .toast-icon { background: #3b82f6; }
+
+.toast-close {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.toast-close:hover { color: #475569; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================== MODAL HEADER + CLOSE ================== */
+
+/* Wrapper header modal: judul + tombol close di pojok */
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.modal-close {
+  border: 0;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.modal-close:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 0.6rem;
+}
+
+.modal-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.4rem 0 0.85rem;
+}
+
+/* ================== PROFILE PAGE (3 section cards) ================== */
+
+/**
+ * Kotak card putih untuk tiap section di halaman profil.
+ * Pola: <section class="profile-card"> <div class="profile-card-header"> <h2>..</h2> </div> ... </section>
+ */
+.profile-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+.profile-card-header h2 {
+  font-size: 1.05rem;
+  margin: 0;
+  color: var(--text);
+}
+
+/* Baris identitas di Section 1: avatar + nama + email */
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.profile-identity-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.profile-identity-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1rem;
+}
+.profile-identity-sub {
+  color: var(--muted);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+/**
+ * Form di dalam profile card: stacked + styling modern minimalis.
+ * Referensi visual: Linear / Notion / Tailwind UI.
+ */
+.profile-card form label {
+  display: block;
+  margin-top: 1.1rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  color: #475569; /* slate-600 */
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.profile-card form label:first-of-type {
+  margin-top: 0;
+}
+
+/**
+ * Input modern:
+ * - padding longgar supaya empuk diklik
+ * - border soft slate (bukan hitam mentah)
+ * - radius 10px (modern, tidak kaku)
+ * - focus: ring indigo halus + border match, tanpa outline browser default
+ */
+.profile-card form input,
+.profile-card form select,
+.profile-card form textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid #e2e8f0; /* slate-200 */
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.profile-card form input::placeholder,
+.profile-card form textarea::placeholder {
+  color: #94a3b8; /* slate-400 */
+}
+
+.profile-card form input:hover,
+.profile-card form select:hover,
+.profile-card form textarea:hover {
+  border-color: #cbd5e1; /* slate-300 */
+}
+
+.profile-card form input:focus,
+.profile-card form select:focus,
+.profile-card form textarea:focus {
+  border-color: #6366f1; /* indigo-500 (match brand) */
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  background: #fff;
+}
+
+.profile-card form input:disabled,
+.profile-card form select:disabled,
+.profile-card form textarea:disabled {
+  background: #f1f5f9; /* slate-100 */
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/**
+ * Tombol di halaman profil: tidak full-width seperti di modal.
+ * Posisi rata kanan, ukuran auto (cukup untuk teks).
+ */
+.profile-card .modal-actions-block {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0;
+  border-top: none;
+}
+.profile-card .modal-actions-block .btn-primary,
+.profile-card .modal-actions-block .btn-secondary {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 160px;
+}
+
+/* ================== SUMMARY STRIP (ringkasan inline, bukan dashboard card) ================== */
+
+/**
+ * Strip ringkasan kompak untuk halaman list (bukan dashboard).
+ * Contoh: "● Menunggu: 5   ● Selesai: 12   ● Ditolak: 2   ● Total: 19"
+ * Berbeda dari stats-card: tidak pakai kotak besar, hanya inline flex.
+ */
+.summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.25rem;
+  padding: 0.6rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+
+.summary-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+}
+
+/* Bulatan warna kecil di depan label */
+.summary-strip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+.summary-strip-dot.is-warning { background: #f59e0b; }
+.summary-strip-dot.is-success { background: #22c55e; }
+.summary-strip-dot.is-danger  { background: #ef4444; }
+.summary-strip-dot.is-info    { background: #6366f1; }
+
+.summary-strip-label { color: var(--muted); }
+.summary-strip-value {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Separator vertikal (dipakai untuk "Total") */
+.summary-strip-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 0.25rem;
+}
+
+/* ================== FORM HELPERS (dipakai di dalam modal) ================== */
+
+/**
+ * Teks bantuan kecil di bawah input.
+ * Pola: <label>Nama</label><input /><span class="form-hint">Penjelasan...</span>
+ */
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: -0.35rem; /* merapatkan ke input di atasnya */
+  margin-bottom: 0.6rem;
+  line-height: 1.4;
+}
+
+/**
+ * Teks bantu kecil DI DALAM label (bukan hint di bawah input).
+ * Pola: <label>Deskripsi <span class="label-aux">— untuk staff</span></label>
+ * Tujuan: kasih konteks singkat tanpa menambah baris baru.
+ */
+.label-aux {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/**
+ * Grid 2 kolom untuk field pendek yang saling terkait (mis. Stok + Stok Min).
+ * Responsif: turun ke 1 kolom di layar sempit.
+ */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 0.75rem;
+}
+
+.form-row-2col > div { display: flex; flex-direction: column; }
+
+@media (max-width: 520px) {
+  .form-row-2col { grid-template-columns: 1fr; }
+}
+
+/* Error inline di dalam modal */
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  margin: 0.5rem 0 0.25rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+/* ================== MODAL VARIANTS ================== */
+
+.modal-box-lg {
+  max-width: 640px;
+}
+
+/* ================== DETAIL MODAL: meta grid + items list ================== */
+
+/**
+ * Grid 2 kolom untuk info meta (Peminta, Tanggal, Status, dll).
+ * Otomatis turun jadi 1 kolom di layar kecil.
+ */
+.detail-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+  padding: 0.75rem 0.85rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .detail-meta-grid { grid-template-columns: 1fr; }
+}
+
+.detail-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.detail-meta-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.detail-meta-value {
+  font-size: 0.9rem;
+  color: var(--text);
+  word-break: break-word;
+}
+
+/* List item barang di dalam modal detail */
+.detail-section-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin: 0.5rem 0 0.5rem;
+}
+
+.detail-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.detail-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 0.88rem;
+}
+
+.detail-item-name {
+  flex: 1;
+  color: var(--text);
+}
+
+.detail-item-name small { color: #94a3b8; font-weight: 400; }
+
+.detail-item-qty {
+  font-weight: 700;
+  color: #0f172a;
+  background: #eef2ff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+/* ================== STOCK PREVIEW (di dalam modal restock) ================== */
+
+/**
+ * Kotak info kecil yang muncul saat user pilih barang + isi jumlah.
+ * Contoh: "Stok saat ini: 50 → 60 (+10)"
+ */
+.stock-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  font-size: 0.85rem;
+  color: #166534;
+  margin-top: 0.5rem;
+}
+
+.stock-preview i {
+  color: #22c55e;
+}
+
+.stock-preview .stock-preview-arrow {
+  color: #94a3b8;
+  margin: 0 0.15rem;
+}
+
+.stock-preview .stock-preview-new {
+  font-weight: 700;
+  color: #15803d;
+}
+
+.stock-preview .stock-preview-delta {
+  margin-left: auto;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* ================== COMBOBOX (searchable dropdown) ================== */
+
+/**
+ * Custom dropdown dengan input search di dalamnya.
+ * Dipakai untuk pilih barang di modal Barang Masuk.
+ */
+.combobox {
+  position: relative;
+}
+
+.combobox-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--text);
+  transition: border-color 0.12s ease;
+}
+
+.combobox-trigger:hover { border-color: #94a3b8; }
+
+.combobox-trigger:focus,
+.combobox.is-open .combobox-trigger {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.combobox-trigger-text {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combobox-trigger-text.is-placeholder { color: #94a3b8; }
+
+.combobox-trigger-icon {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  transition: transform 0.18s ease;
+}
+
+.combobox.is-open .combobox-trigger-icon {
+  transform: rotate(180deg);
+}
+
+.combobox-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  z-index: 60;
+  overflow: hidden;
+  animation: combo-in 0.14s ease-out;
+}
+
+@keyframes combo-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.combobox-search {
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+}
+
+.combobox-search input {
+  border: 0;
+  background: transparent;
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.combobox-search input:focus { outline: none; }
+
+.combobox-search i { color: #94a3b8; font-size: 0.8rem; }
+
+.combobox-list {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.combobox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--text);
+  transition: background 0.1s ease;
+}
+
+.combobox-item:hover,
+.combobox-item.is-active {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.combobox-item-name { flex: 1; }
+.combobox-item-name small { color: #94a3b8; font-weight: 400; }
+
+.combobox-item-stok {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.combobox-item-stok.is-low  { background: #fef3c7; color: #92400e; }
+.combobox-item-stok.is-empty { background: #fee2e2; color: #b91c1c; }
+
+.combobox-empty {
+  padding: 1rem 0.7rem;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+/* ================== MODAL ACTIONS — variant block ================== */
+
+/* Tombol modal yang lebih besar (full-width sejajar) */
+.modal-actions-block {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.modal-actions-block button {
+  padding: 0.65rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 /* Tabel */
@@ -1163,5 +2590,503 @@
 
   .app-sidebar.is-open {
     transform: translateX(0);
+  }
+}
+
+/**
+ * Stats card versi link (clickable) — dipakai untuk drill-down dari
+ * Dashboard ke halaman riwayat dengan filter status.
+ */
+a.stats-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+a.stats-card-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(29, 21, 180, 0.08);
+}
+
+a.stats-card-link:hover .stats-card {
+  border-color: var(--accent, #e2e8f0);
+}
+
+/* ================== DASHBOARD HERO + ALERT BANNER ================== */
+
+/**
+ * Hero greeting di atas Dashboard — warna indigo soft, avatar + teks + CTA.
+ * Dipakai di StaffDashboard (bisa juga di dashboard role lain).
+ */
+.dashboard-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.4rem;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #eef2ff 0%, #f5f3ff 100%);
+  border: 1px solid #e0e7ff;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-hero-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(29, 21, 180, 0.2);
+}
+
+.dashboard-hero-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-hero-greet {
+  margin: 0 0 0.2rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dashboard-hero-sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.dashboard-hero-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .dashboard-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dashboard-hero-actions {
+    width: 100%;
+  }
+  .dashboard-hero-actions a,
+  .dashboard-hero-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/**
+ * Alert banner — dipakai misal: "Kamu punya X item di keranjang".
+ * Berfungsi sebagai Link (clickable full area).
+ */
+.dashboard-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: var(--text);
+  text-decoration: none;
+  margin-bottom: 1rem;
+  transition: background 0.15s ease, transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.dashboard-alert:hover {
+  background: #dcfce7;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(34, 197, 94, 0.15);
+}
+
+.dashboard-alert.is-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.dashboard-alert.is-info:hover {
+  background: #dbeafe;
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.15);
+}
+
+.dashboard-alert-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--success);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-alert.is-info .dashboard-alert-icon {
+  background: var(--info);
+}
+
+.dashboard-alert-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-alert-body strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.92rem;
+}
+
+.dashboard-alert-body p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.dashboard-alert-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+/* ================== CART (Keranjang Permintaan) ================== */
+
+/**
+ * FAB (Floating Action Button) — tombol keranjang bulat pojok kanan bawah.
+ * Selalu terlihat saat user browsing katalog, badge angka = jumlah item.
+ */
+.cart-fab {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 80;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 30px rgba(29, 21, 180, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.cart-fab:hover {
+  background: var(--primary-strong);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(27, 16, 146, 0.4);
+}
+
+.cart-fab:active {
+  transform: translateY(0);
+}
+
+/* Badge angka di pojok kanan atas FAB */
+.cart-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  line-height: 1;
+}
+
+/* ---- Drawer overlay + panel ---- */
+
+.cart-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.cart-drawer-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cart-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  width: min(420px, 100vw);
+  background: var(--surface);
+  box-shadow: -8px 0 32px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(105%);
+  transition: transform 0.28s ease;
+}
+
+.cart-drawer.is-open {
+  transform: translateX(0);
+}
+
+.cart-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.cart-drawer-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-drawer-header .modal-close {
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.cart-drawer-header .modal-close:hover {
+  background: var(--surface-soft);
+}
+
+.cart-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.25rem;
+}
+
+.cart-drawer-footer {
+  padding: 0.85rem 1.25rem 1.1rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-soft);
+  flex-shrink: 0;
+}
+
+.cart-drawer-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.cart-drawer-footer-row strong {
+  font-size: 1.05rem;
+  color: var(--primary);
+}
+
+.cart-drawer-footer .btn-primary {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ---- Item row di dalam drawer ---- */
+
+.cart-item {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cart-item-image {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #cbd5e1;
+  font-size: 1.1rem;
+}
+
+.cart-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-item-info {
+  min-width: 0;
+}
+
+.cart-item-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0 0 0.2rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-item-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ---- Qty control (−  3  +) ---- */
+
+.cart-qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface);
+  height: 34px;
+}
+
+.cart-qty-btn {
+  width: 30px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.cart-qty-btn:hover:not(:disabled) {
+  background: var(--surface-soft);
+}
+
+.cart-qty-btn:disabled {
+  color: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.cart-qty-input {
+  width: 38px;
+  height: 100%;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  outline: none;
+  padding: 0;
+}
+
+.cart-qty-input::-webkit-outer-spin-button,
+.cart-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cart-qty-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ---- Remove button + bar aksi mini di item ---- */
+
+.cart-item-actions {
+  grid-column: 2 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  gap: 0.5rem;
+}
+
+.cart-item-remove {
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.cart-item-remove:hover {
+  background: var(--danger-soft);
+}
+
+.cart-item-stok-warn {
+  font-size: 0.72rem;
+  color: var(--danger);
+}
+
+/* ---- Empty state ---- */
+
+.cart-empty {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.cart-empty i {
+  font-size: 2.5rem;
+  color: #cbd5e1;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.cart-empty-title {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+/* ---- Responsive tweaks ---- */
+
+@media (max-width: 520px) {
+  .cart-fab {
+    right: 1rem;
+    bottom: 1rem;
+    width: 50px;
+    height: 50px;
   }
 }

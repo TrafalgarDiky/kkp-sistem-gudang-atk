@@ -1,10 +1,12 @@
 "use client";
 
 /** Barang — tampilan tabel + CRUD + upload gambar (Admin) */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
 
 const initialForm = { kode: "", nama: "", satuan: "", stok: "", stokMinimum: "", deskripsi: "", gambarUrl: "" };
+
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
 function downloadCsv(filename, rows) {
   const escape = (s) => {
@@ -24,17 +26,44 @@ function downloadCsv(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Tentukan status stok berdasarkan jumlah & batas minimum.
+ * Output: { variant, label, show } — show=false berarti normal, tidak perlu badge.
+ */
+function getStockStatus(stok, stokMin) {
+  const s = Number(stok) || 0;
+  if (s <= 0) return { variant: "empty", label: "Habis", show: true };
+  if (stokMin != null && s < Number(stokMin)) {
+    return { variant: "low", label: "Menipis", show: true };
+  }
+  return { variant: "ok", label: "OK", show: false };
+}
+
 export default function AdminBarang() {
   const [barang, setBarang] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Modal CRUD
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [submitLoading, setSubmitLoading] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
+  const [modalError, setModalError] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+
+  // Modal konfirmasi hapus (ganti window.confirm)
+  const [deleteTarget, setDeleteTarget] = useState(null); // {id, nama}
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Lightbox preview gambar
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+
+  // Search & paginasi
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const fetchBarang = async () => {
     setLoading(true);
@@ -56,6 +85,33 @@ export default function AdminBarang() {
   useEffect(() => {
     fetchBarang();
   }, []);
+
+  /**
+   * Filter barang berdasarkan kata kunci search.
+   * Cari di: kode, nama, deskripsi (case-insensitive).
+   */
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return barang;
+    return barang.filter((b) => {
+      return (
+        (b.kode || "").toLowerCase().includes(q) ||
+        (b.nama || "").toLowerCase().includes(q) ||
+        (b.deskripsi || "").toLowerCase().includes(q)
+      );
+    });
+  }, [barang, search]);
+
+  // Reset ke page 1 setiap kali search berubah
+  useEffect(() => {
+    setPage(1);
+  }, [search, perPage]);
+
+  // Slice untuk paginasi
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const startIdx = (safePage - 1) * perPage;
+  const visible = filtered.slice(startIdx, startIdx + perPage);
 
   const openTambah = () => {
     setEditingId(null);
@@ -84,12 +140,14 @@ export default function AdminBarang() {
   };
 
   const closeModal = () => {
+    if (submitLoading) return; // jangan tutup saat sedang submit
     if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
     setImagePreviewUrl(null);
     setImageFile(null);
     setModalOpen(false);
     setEditingId(null);
     setForm(initialForm);
+    setModalError("");
   };
 
   const onImageChange = (e) => {
@@ -107,7 +165,7 @@ export default function AdminBarang() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitLoading(true);
-    setError("");
+    setModalError("");
     try {
       let gambarUrl = form.gambarUrl.trim() || null;
       if (imageFile) {
@@ -120,7 +178,7 @@ export default function AdminBarang() {
         });
         const upData = await upRes.json();
         if (!upData.success) {
-          setError(upData.message || "Gagal upload gambar");
+          setModalError(upData.message || "Gagal upload gambar");
           setSubmitLoading(false);
           return;
         }
@@ -149,42 +207,94 @@ export default function AdminBarang() {
         closeModal();
         fetchBarang();
       } else {
-        setError(data.message || "Gagal menyimpan");
+        setModalError(data.message || "Gagal menyimpan");
       }
     } catch (err) {
-      setError("Koneksi gagal");
+      setModalError("Koneksi gagal");
     } finally {
       setSubmitLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Yakin hapus barang ini?")) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget?.id) return;
+    setDeleteLoading(true);
     setError("");
     try {
-      const res = await fetch(apiUrl(`/api/barang/${id}`), {
+      const res = await fetch(apiUrl(`/api/barang/${deleteTarget.id}`), {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (data.success) {
-        setDeleteId(null);
+        setDeleteTarget(null);
         fetchBarang();
       } else {
         setError(data.message || "Gagal menghapus");
       }
     } catch (err) {
       setError("Koneksi gagal");
+    } finally {
+      setDeleteLoading(false);
     }
+  };
+
+  const handleExport = () => {
+    const rows = [["Kode", "Nama", "Satuan", "Stok", "Stok Minimum", "Deskripsi", "Gambar URL"]];
+    for (const b of barang) {
+      rows.push([
+        b.kode || "",
+        b.nama || "",
+        b.satuan || "",
+        String(b.stok ?? ""),
+        b.stokMinimum == null ? "" : String(b.stokMinimum),
+        b.deskripsi || "",
+        b.gambarUrl || "",
+      ]);
+    }
+    downloadCsv(`stok_barang_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
 
   return (
     <main className="app-content">
-      <div className="page-head">
-        <h1>Barang</h1>
-        <button type="button" className="btn-primary" onClick={openTambah}>
-          <i className="fa-solid fa-plus" /> Tambah Barang
-        </button>
+      {/* ============ TOOLBAR: judul + search + aksi ============ */}
+      <div className="list-toolbar">
+        <h1>Stok Barang</h1>
+        <div className="list-toolbar-spacer" />
+        <div className="search-box">
+          <i className="fa-solid fa-magnifying-glass" />
+          <input
+            type="text"
+            placeholder="Cari kode, nama, deskripsi..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              type="button"
+              className="search-box-clear"
+              onClick={() => setSearch("")}
+              title="Bersihkan pencarian"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          )}
+        </div>
+        <div className="list-toolbar-actions">
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={handleExport}
+            disabled={!barang.length}
+            title="Export ke CSV"
+          >
+            <i className="fa-solid fa-download" />
+            <span>Export</span>
+          </button>
+          <button type="button" className="btn-primary" onClick={openTambah}>
+            <i className="fa-solid fa-plus" /> Tambah Barang
+          </button>
+        </div>
       </div>
 
       {error && <p className="app-error">{error}</p>}
@@ -192,162 +302,235 @@ export default function AdminBarang() {
       {loading ? (
         <p className="app-muted">Memuat...</p>
       ) : barang.length === 0 ? (
-        <p className="app-muted">Belum ada barang.</p>
+        <div className="empty-state">
+          <i className="fa-solid fa-box-open" />
+          <div className="empty-state-title">Belum ada barang</div>
+          <p className="empty-state-sub">Mulai dengan menambahkan barang pertama.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="empty-state">
+          <i className="fa-solid fa-magnifying-glass" />
+          <div className="empty-state-title">Tidak ada hasil</div>
+          <p className="empty-state-sub">Coba kata kunci lain atau bersihkan pencarian.</p>
+        </div>
       ) : (
         <>
           <div className="table-wrap">
             <table className="app-table">
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th>Kode</th>
+                  <th style={{ width: 60 }}>Foto</th>
+                  <th style={{ width: 100 }}>Kode</th>
                   <th>Nama</th>
-                  <th>Satuan</th>
-                  <th>Stok</th>
+                  <th style={{ width: 90 }}>Satuan</th>
+                  <th style={{ width: 130 }}>Stok</th>
                   <th>Deskripsi</th>
-                  <th>Gambar</th>
-                  <th>Aksi</th>
+                  <th style={{ width: 110, textAlign: "right" }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {barang.map((b, i) => (
-                  <tr key={b.id}>
-                    <td>{i + 1}</td>
-                    <td>{b.kode || "-"}</td>
-                    <td>{b.nama}</td>
-                    <td>{b.satuan}</td>
-                    <td>{b.stok}</td>
-                    <td>{b.deskripsi || "-"}</td>
-                    <td>
-                      {b.gambarUrl ? (
-                        <a href={resolveBarangImageSrc(b.gambarUrl)} target="_blank" rel="noopener noreferrer">
-                          Lihat
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn-sm btn-edit"
-                        onClick={() => openEdit(b)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-sm btn-danger"
-                        onClick={() => setDeleteId(b.id)}
-                      >
-                        Hapus
-                      </button>
-                      {deleteId === b.id && (
-                        <span className="confirm-wrap">
-                          Hapus?{" "}
-                          <button type="button" onClick={() => handleDelete(b.id)}>
-                            Ya
+                {visible.map((b) => {
+                  const stat = getStockStatus(b.stok, b.stokMinimum);
+                  const imgSrc = b.gambarUrl ? resolveBarangImageSrc(b.gambarUrl) : null;
+                  return (
+                    <tr key={b.id}>
+                      <td>
+                        {imgSrc ? (
+                          <img
+                            src={imgSrc}
+                            alt={b.nama}
+                            className="thumb"
+                            onClick={() => setLightboxUrl(imgSrc)}
+                          />
+                        ) : (
+                          <span className="thumb-placeholder" title="Belum ada gambar">
+                            <i className="fa-solid fa-image" />
+                          </span>
+                        )}
+                      </td>
+                      <td><code>{b.kode || "—"}</code></td>
+                      <td>{b.nama}</td>
+                      <td>{b.satuan}</td>
+                      <td>
+                        <span className="stock-cell">
+                          <span className="stock-num">{b.stok}</span>
+                          {stat.show && (
+                            <span className={`stock-badge stock-badge-${stat.variant}`}>
+                              {stat.label}
+                            </span>
+                          )}
+                        </span>
+                      </td>
+                      <td>
+                        {b.deskripsi ? (
+                          <span className="text-truncate" title={b.deskripsi}>
+                            {b.deskripsi}
+                          </span>
+                        ) : (
+                          <span className="app-muted">—</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <span className="row-actions">
+                          <button
+                            type="button"
+                            className="icon-btn icon-btn-edit"
+                            onClick={() => openEdit(b)}
+                            title="Edit barang"
+                            aria-label={`Edit ${b.nama}`}
+                          >
+                            <i className="fa-solid fa-pen" />
                           </button>
-                          <button type="button" onClick={() => setDeleteId(null)}>
-                            Batal
+                          <button
+                            type="button"
+                            className="icon-btn icon-btn-danger"
+                            onClick={() => setDeleteTarget({ id: b.id, nama: b.nama })}
+                            title="Hapus barang"
+                            aria-label={`Hapus ${b.nama}`}
+                          >
+                            <i className="fa-solid fa-trash" />
                           </button>
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
-          {/* Tombol export diminta: di bawah tabel, warna hijau */}
-          <div style={{ marginTop: "0.9rem" }}>
-            <button
-              type="button"
-              className="btn-secondary"
-              style={{
-                background: "#22c55e",
-                borderColor: "#16a34a",
-                color: "#fff",
-              }}
-              onClick={() => {
-                const rows = [
-                  ["Kode", "Nama", "Satuan", "Stok", "Stok Minimum", "Deskripsi", "Gambar URL"],
-                ];
-                for (const b of barang) {
-                  rows.push([
-                    b.kode || "",
-                    b.nama || "",
-                    b.satuan || "",
-                    String(b.stok ?? ""),
-                    b.stokMinimum == null ? "" : String(b.stokMinimum),
-                    b.deskripsi || "",
-                    b.gambarUrl || "",
-                  ]);
-                }
-                downloadCsv(`stok_barang_${new Date().toISOString().slice(0, 10)}.csv`, rows);
-              }}
-            >
-              Export CSV
-            </button>
+          {/* ============ FOOTER: pagination + total ============ */}
+          <div className="pagination">
+            <div>
+              Menampilkan <strong>{visible.length}</strong> dari <strong>{filtered.length}</strong> barang
+              {search && ` (dari total ${barang.length})`}
+            </div>
+            <div className="pagination-controls">
+              <label>
+                Per halaman:&nbsp;
+                <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+                  {PER_PAGE_OPTIONS.map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                title="Sebelumnya"
+              >
+                <i className="fa-solid fa-chevron-left" />
+              </button>
+              <span>{safePage} / {totalPages}</span>
+              <button
+                type="button"
+                className="btn-icon"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                title="Berikutnya"
+              >
+                <i className="fa-solid fa-chevron-right" />
+              </button>
+            </div>
           </div>
         </>
       )}
 
+      {/* ============ MODAL: Tambah / Edit Barang ============ */}
       {modalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h2>{editingId ? "Edit Barang" : "Tambah Barang"}</h2>
+            <div className="modal-header">
+              <h2>{editingId ? "Edit Barang" : "Tambah Barang"}</h2>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={closeModal}
+                disabled={submitLoading}
+                title="Tutup"
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+            {editingId && (
+              <p className="modal-subtitle">
+                Kode <strong>{form.kode || "—"}</strong>
+              </p>
+            )}
+            <div className="modal-divider" />
+
             <form onSubmit={handleSubmit}>
-              <label>Kode barang {editingId ? <span className="required">*</span> : <span className="app-muted">(otomatis)</span>}</label>
-              <input
-                type="text"
-                value={form.kode}
-                onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value }))}
-                placeholder={editingId ? "A-0001" : "Otomatis dibuat sistem"}
-                disabled={!editingId}
-                required={!!editingId}
-              />
+              {/* Kode — hanya tampil di mode Edit */}
+              {editingId && (
+                <>
+                  <label>Kode <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    value={form.kode}
+                    onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value }))}
+                    placeholder="A-0001"
+                    required
+                  />
+                </>
+              )}
+
               <label>Nama <span className="required">*</span></label>
               <input
                 type="text"
                 value={form.nama}
                 onChange={(e) => setForm((f) => ({ ...f, nama: e.target.value }))}
-                placeholder="Nama barang"
+                placeholder="Pulpen BIC Hitam"
                 required
+                autoFocus={!editingId}
               />
+
               <label>Satuan <span className="required">*</span></label>
               <input
                 type="text"
                 value={form.satuan}
                 onChange={(e) => setForm((f) => ({ ...f, satuan: e.target.value }))}
-                placeholder="buah, box, pack, dll."
+                placeholder="buah, box, pack"
                 required
               />
-              <label>Stok</label>
-              <input
-                type="number"
-                min="0"
-                value={form.stok}
-                onChange={(e) => setForm((f) => ({ ...f, stok: e.target.value }))}
-                placeholder="0"
-              />
-              <label>Stok minimum (opsional — untuk alert stok menipis di Dashboard)</label>
-              <input
-                type="number"
-                min="0"
-                value={form.stokMinimum}
-                onChange={(e) => setForm((f) => ({ ...f, stokMinimum: e.target.value }))}
-                placeholder="Kosongkan jika tidak dipakai"
-              />
-              <label>Deskripsi (tampil di popup detail barang untuk Staff)</label>
+
+              {/* Stok & Stok Minimum — berdampingan agar hemat tinggi */}
+              <div className="form-row-2col">
+                <div>
+                  <label>Stok awal</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.stok}
+                    onChange={(e) => setForm((f) => ({ ...f, stok: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  {/* Label kecil di kanan menjelaskan fungsi, gantikan form-hint panjang di bawah */}
+                  <label>
+                    Stok minimum <span className="label-aux">— alert Dashboard</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.stokMinimum}
+                    onChange={(e) => setForm((f) => ({ ...f, stokMinimum: e.target.value }))}
+                    placeholder="opsional"
+                  />
+                </div>
+              </div>
+
+              <label>Deskripsi <span className="label-aux">— untuk staff</span></label>
               <textarea
                 value={form.deskripsi}
                 onChange={(e) => setForm((f) => ({ ...f, deskripsi: e.target.value }))}
-                placeholder="Contoh: Pulpen standar kantor, tinta biru"
+                placeholder="Pulpen standar, tinta biru"
                 rows={3}
               />
-              <label>Gambar barang</label>
+
+              <label>Gambar</label>
               <div className="form-image-upload">
                 <div className="form-image-preview">
                   {(imagePreviewUrl || form.gambarUrl) ? (
@@ -367,18 +550,90 @@ export default function AdminBarang() {
                   onChange={onImageChange}
                   className="form-image-input"
                 />
-                <p className="form-image-hint">JPEG, PNG, GIF atau WebP. Maks. 5 MB.</p>
+                <p className="form-image-hint">JPEG/PNG/WebP · maks 5 MB</p>
               </div>
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={closeModal}>
+
+              {/* Error inline dari server */}
+              {modalError && (
+                <div className="form-error">
+                  <i className="fa-solid fa-circle-exclamation" />
+                  <span>{modalError}</span>
+                </div>
+              )}
+
+              <div className="modal-actions-block">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeModal}
+                  disabled={submitLoading}
+                >
                   Batal
                 </button>
                 <button type="submit" className="btn-primary" disabled={submitLoading}>
-                  {submitLoading ? "Menyimpan..." : editingId ? "Simpan" : "Tambah"}
+                  {submitLoading
+                    ? "Menyimpan..."
+                    : editingId ? "Simpan Perubahan" : "Tambah Barang"}
                 </button>
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* ============ MODAL: Konfirmasi Hapus ============ */}
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => !deleteLoading && setDeleteTarget(null)}>
+          <div className="modal-box modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-icon-wrap">
+              <span className="modal-icon">
+                <i className="fa-solid fa-triangle-exclamation" />
+              </span>
+            </div>
+            <h2 className="modal-text-center">Hapus Barang?</h2>
+            <p className="modal-text-center app-muted" style={{ marginBottom: "1rem" }}>
+              Yakin ingin menghapus <strong>{deleteTarget.nama}</strong>? Tindakan ini tidak bisa dibatalkan.
+            </p>
+            <div className="modal-actions" style={{ justifyContent: "center" }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleteLoading}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ background: "#dc2626", borderColor: "#b91c1c" }}
+                onClick={confirmDelete}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============ LIGHTBOX: Preview Gambar ============ */}
+      {lightboxUrl && (
+        <div className="lightbox-overlay" onClick={() => setLightboxUrl(null)}>
+          <button
+            type="button"
+            className="lightbox-close"
+            onClick={() => setLightboxUrl(null)}
+            title="Tutup"
+          >
+            <i className="fa-solid fa-xmark" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Preview"
+            className="lightbox-img"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </main>

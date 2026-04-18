@@ -7,26 +7,49 @@
  * - Saat klik LOGIN: toggleView() → hero.login + form.login dapat "active", card-bg dapat "login" (background ungu geser ke kanan).
  * - Saat klik SIGN UP: toggleView() → kembali ke register active, card-bg tanpa "login".
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiUrl } from "@/lib/api";
 import "./auth.css";
 
+/** Key localStorage untuk email yang diingat (bukan password — password tidak boleh disimpan di JS). */
+const REMEMBER_EMAIL_KEY = "gatk_remember_email";
+
 export default function LoginPage() {
   const router = useRouter();
   // false = tampil Register (default), true = tampil Login
   const [isLoginView, setIsLoginView] = useState(false);
+  /** Jika token masih ada di browser, user dianggap sudah login → langsung ke dashboard (tidak perlu isi form lagi). */
+  const [checkingSession, setCheckingSession] = useState(true);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  /** Centang = simpan email ke localStorage setelah login sukses (tetap harus ketik password). */
+  const [rememberEmail, setRememberEmail] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.replace("/dashboard");
+      return;
+    }
+    // Tanpa token: boleh isi email otomatis jika user pernah centang "Ingat email saya"
+    const savedEmail = localStorage.getItem(REMEMBER_EMAIL_KEY);
+    if (savedEmail) {
+      setLoginEmail(savedEmail);
+      setRememberEmail(true);
+    }
+    setCheckingSession(false);
+  }, [router]);
+
   const [regNama, setRegNama] = useState("");
   const [regEmail, setRegEmail] = useState("");
+  const [regDivisi, setRegDivisi] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regPasswordConfirm, setRegPasswordConfirm] = useState("");
   const [regRole, setRegRole] = useState("STAFF");
   const [regMessage, setRegMessage] = useState({ type: "", text: "" });
   const [regLoading, setRegLoading] = useState(false);
@@ -34,7 +57,6 @@ export default function LoginPage() {
   // Visibility toggle password (show = tampil teks, hide = bullet)
   const [showLoginPw, setShowLoginPw] = useState(false);
   const [showRegPw, setShowRegPw] = useState(false);
-  const [showRegPwConfirm, setShowRegPwConfirm] = useState(false);
 
   const toggleView = () => {
     setIsLoginView((prev) => !prev);
@@ -62,6 +84,11 @@ export default function LoginPage() {
       if (token && typeof window !== "undefined") {
         localStorage.setItem("token", token);
         if (user) localStorage.setItem("user", JSON.stringify(user));
+        if (rememberEmail && loginEmail.trim()) {
+          localStorage.setItem(REMEMBER_EMAIL_KEY, loginEmail.trim().toLowerCase());
+        } else {
+          localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
         router.push("/dashboard");
       } else {
         setLoginError("Token tidak diterima. Coba lagi.");
@@ -78,8 +105,8 @@ export default function LoginPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setRegMessage({ type: "", text: "" });
-    if (regPassword !== regPasswordConfirm) {
-      setRegMessage({ type: "error", text: "Password dan konfirmasi tidak sama." });
+    if (!regDivisi.trim()) {
+      setRegMessage({ type: "error", text: "Divisi wajib diisi." });
       return;
     }
     if (regPassword.length < 6) {
@@ -94,6 +121,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           nama: regNama.trim(),
           email: regEmail.trim(),
+          divisi: regDivisi.trim(),
           password: regPassword,
           role: regRole,
         }),
@@ -103,8 +131,8 @@ export default function LoginPage() {
         setRegMessage({ type: "success", text: data.message || "Registrasi berhasil. Menunggu verifikasi admin." });
         setRegNama("");
         setRegEmail("");
+        setRegDivisi("");
         setRegPassword("");
-        setRegPasswordConfirm("");
       } else {
         setRegMessage({ type: "error", text: data.message || "Registrasi gagal." });
       }
@@ -117,6 +145,16 @@ export default function LoginPage() {
       setRegLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="auth-page">
+        <p className="auth-loading" style={{ textAlign: "center", padding: "2rem" }}>
+          Memeriksa sesi...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">
@@ -163,6 +201,13 @@ export default function LoginPage() {
               onChange={(e) => setRegEmail(e.target.value)}
               required
             />
+            <input
+              type="text"
+              placeholder="Divisi"
+              value={regDivisi}
+              onChange={(e) => setRegDivisi(e.target.value)}
+              required
+            />
             <select value={regRole} onChange={(e) => setRegRole(e.target.value)}>
               <option value="STAFF">Staff</option>
               <option value="ADMIN">Admin</option>
@@ -187,24 +232,6 @@ export default function LoginPage() {
                 <i className={showRegPw ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
               </button>
             </div>
-            <div className="password-wrap">
-              <input
-                type={showRegPwConfirm ? "text" : "password"}
-                placeholder="Konfirmasi password"
-                value={regPasswordConfirm}
-                onChange={(e) => setRegPasswordConfirm(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="pw-toggle"
-                onClick={() => setShowRegPwConfirm((p) => !p)}
-                title={showRegPwConfirm ? "Sembunyikan" : "Tampilkan"}
-                aria-label={showRegPwConfirm ? "Sembunyikan konfirmasi" : "Tampilkan konfirmasi"}
-              >
-                <i className={showRegPwConfirm ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
-              </button>
-            </div>
             {regMessage.text && (
               <p className={regMessage.type === "error" ? "error-msg" : "success-msg"}>{regMessage.text}</p>
             )}
@@ -227,10 +254,12 @@ export default function LoginPage() {
         <div className={`form login ${isLoginView ? "active" : ""}`}>
           <h2>Login</h2>
           <p>Gunakan akun Anda</p>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} autoComplete="on">
             <input
               type="email"
+              name="email"
               placeholder="Email"
+              autoComplete="username"
               value={loginEmail}
               onChange={(e) => setLoginEmail(e.target.value)}
               required
@@ -238,7 +267,9 @@ export default function LoginPage() {
             <div className="password-wrap">
               <input
                 type={showLoginPw ? "text" : "password"}
+                name="password"
                 placeholder="Password"
+                autoComplete="current-password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 required
@@ -253,9 +284,19 @@ export default function LoginPage() {
                 <i className={showLoginPw ? "fa-solid fa-eye-slash" : "fa-solid fa-eye"} />
               </button>
             </div>
-            <Link href="/forgot-password" className="forgot">
-              Lupa password?
-            </Link>
+            <div className="auth-login-extras">
+              <label className="remember-me">
+                <input
+                  type="checkbox"
+                  checked={rememberEmail}
+                  onChange={(e) => setRememberEmail(e.target.checked)}
+                />
+                <span>Ingat email saya</span>
+              </label>
+              <Link href="/forgot-password" className="forgot">
+                Lupa password?
+              </Link>
+            </div>
             {loginError && <p className="error-msg">{loginError}</p>}
             <button type="submit" disabled={loginLoading}>
               {loginLoading ? "Loading..." : "LOGIN"}

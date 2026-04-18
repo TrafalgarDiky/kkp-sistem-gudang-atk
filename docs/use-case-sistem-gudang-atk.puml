@@ -1,0 +1,105 @@
+@startuml use-case-sistem-gudang-atk
+' ============================================================
+' Use Case — Sistem Informasi Gudang ATK (sesuai sidebar + API)
+' Cara pakai di diagrams.net (app.diagrams.net):
+'   Arrange → Insert → Advanced → PlantUML
+'   Lalu tempel isi file ini (tanpa baris komentar jika error).
+' Alternatif: vscode extension PlantUML / plantuml.com
+' ============================================================
+
+title Use Case Diagram — Sistem Informasi Gudang ATK
+
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam linetype ortho
+skinparam shadowing false
+left to right direction
+
+actor "Tamu\n(belum login)" as Tamu
+actor "Admin Gudang" as Admin
+actor "Staff (Peminta)" as Staff
+actor "Petugas Gudang" as Petugas
+
+rectangle "Sistem Informasi Gudang ATK" {
+
+  ' ===== Layout biar 2 kolom (lebih pendek) =====
+  together {
+    package "Autentikasi & akun publik" {
+      usecase "UC-01\nDaftar akun" as UC01
+      usecase "UC-02\nLogin" as UC02
+      usecase "UC-03\nLupa kata sandi /\nreset via email" as UC03
+    }
+
+    package "Profil & ringkasan (semua role login)" {
+      usecase "UC-04\nLihat / ubah profil" as UC04
+      usecase "UC-05\nLihat dashboard" as UC05
+    }
+  }
+
+  together {
+    package "Admin — barang & stok" {
+      usecase "UC-06\nKelola master barang\n(tambah/ubah/hapus)" as UC06
+      usecase "UC-07\nCatat barang masuk\n(restock)" as UC07
+      usecase "UC-08\nLihat log perubahan stok" as UC08
+      usecase "UC-09\nLihat laporan" as UC09
+    }
+
+    package "Admin — organisasi & permintaan" {
+      usecase "UC-10\nVerifikasi pendaftar\n(aktif / tolak)" as UC10
+      usecase "UC-11\nKelola data pengguna" as UC11
+      usecase "UC-12\nSetujui / tolak\npermintaan ATK" as UC12
+      usecase "UC-13\nPantau tugas petugas" as UC13
+    }
+  }
+
+  together {
+    package "Staff — permintaan" {
+      usecase "UC-14\nLihat daftar barang /\nstok" as UC14
+      usecase "UC-15\nAjukan permintaan ATK" as UC15
+      usecase "UC-16\nLihat riwayat permintaan" as UC16
+    }
+
+    package "Petugas — penanganan tugas" {
+      usecase "UC-18\nKelola status tugas\n(sampai selesai)" as UC18
+      usecase "UC-19\nLihat riwayat tugas" as UC19
+    }
+  }
+}
+
+' --- Tamu: hanya auth publik ---
+Tamu --> UC01
+Tamu --> UC02
+Tamu --> UC03
+
+' --- Semua pengguna terautentikasi: profil + dashboard ---
+Admin --> UC04
+Admin --> UC05
+Staff --> UC04
+Staff --> UC05
+Petugas --> UC04
+Petugas --> UC05
+
+' --- Admin: modul barang & organisasi ---
+Admin --> UC06
+Admin --> UC07
+Admin --> UC08
+Admin --> UC09
+Admin --> UC10
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+
+' --- Staff: permintaan ---
+Staff --> UC14
+Staff --> UC15
+Staff --> UC16
+
+' --- Petugas: tugas (API update tugas = PETUGAS) ---
+Petugas --> UC14
+Petugas --> UC18
+Petugas --> UC19
+
+UC15 ..> UC14 : <<include>>
+hide footbox
+
+@enduml

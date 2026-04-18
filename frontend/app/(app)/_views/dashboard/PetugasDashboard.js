@@ -1,19 +1,71 @@
 "use client";
 
 /**
- * Dashboard Petugas — fokus aksi harian:
- * - Kartu ringkas tugas
- * - Prioritas hari ini
- * - Tugas saya aktif
+ * Dashboard Petugas (Opsi A — Ringkas, non-duplikat).
+ *
+ * Desain:
+ *   - Fokus ke RINGKASAN + SHORTCUT, bukan daftar tugas.
+ *   - Daftar tugas lengkap ada di menu "Daftar Tugas" (sidebar).
+ *
+ * Bagian halaman:
+ *   1. Hero greeting (nama + waktu + 1 CTA Buka Daftar Tugas).
+ *   2. Cart alert (muncul kalau petugas punya isi di keranjang).
+ *   3. 3 Stat cards clickable — drill-down ke halaman yang tepat:
+ *      - Tersedia         → /permintaan/tugas?kepemilikan=TERSEDIA
+ *      - Tugas Saya Aktif → /permintaan/tugas?kepemilikan=SAYA
+ *      - Selesai Hari Ini → /permintaan/riwayat
+ *   4. Empty state kalau belum ada tugas sama sekali.
  */
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
+import { useCart } from "@/lib/useCart";
+
+/* ========================= Helpers ========================= */
+
+/**
+ * Greeting sesuai jam lokal:
+ *  5–10  : pagi
+ *  11–14 : siang
+ *  15–17 : sore
+ *  18–4  : malam
+ */
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h >= 5 && h <= 10) return "Selamat pagi";
+  if (h >= 11 && h <= 14) return "Selamat siang";
+  if (h >= 15 && h <= 17) return "Selamat sore";
+  return "Selamat malam";
+}
+
+function getInitials(nama) {
+  if (!nama) return "?";
+  const parts = String(nama).trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Cek apakah tanggal `dt` adalah hari ini (berdasarkan timezone lokal). */
+function isToday(dt) {
+  if (!dt) return false;
+  const d = new Date(dt);
+  if (Number.isNaN(d.getTime())) return false;
+  const now = new Date();
+  return (
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  );
+}
+
+/* ========================= Component ========================= */
 
 export default function PetugasDashboard({ user }) {
   const [tugas, setTugas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { count: cartCount, totalQty: cartTotalQty } = useCart();
 
   useEffect(() => {
     let cancelled = false;
@@ -28,7 +80,7 @@ export default function PetugasDashboard({ user }) {
         if (cancelled) return;
         if (data.success) setTugas(data.data?.tugas || []);
         else setError(data.message || "Gagal memuat tugas petugas");
-      } catch (_) {
+      } catch {
         if (!cancelled) setError("Koneksi gagal.");
       } finally {
         if (!cancelled) setLoading(false);
@@ -42,226 +94,168 @@ export default function PetugasDashboard({ user }) {
 
   const meId = user?.id;
 
-  const summary = useMemo(() => {
-    const waiting = tugas.filter(
-      (t) =>
-        t.statusTugas === "MENUNGGU_ASSIGN" &&
-        t.permintaan?.statusAdmin !== "DITOLAK_ADMIN",
-    ).length;
-    const myActive = tugas.filter(
-      (t) =>
-        t.petugasId === meId &&
-        ["ON_DELIVERY", "DALAM_PROSES", "MENUNGGU_ASSIGN"].includes(
-          t.statusTugas,
-        ) &&
-        t.permintaan?.statusAdmin !== "DITOLAK_ADMIN",
-    ).length;
-    const doneToday = tugas.filter((t) => {
-      if (t.petugasId !== meId) return false;
-      if (!["SELESAI", "DELIVERED"].includes(t.statusTugas)) return false;
-      const d = new Date(t.updatedAt || t.createdAt);
-      const now = new Date();
-      return (
-        d.getDate() === now.getDate() &&
-        d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear()
-      );
-    }).length;
-    const cancelled = tugas.filter(
-      (t) =>
-        t.statusTugas === "DITOLAK" ||
-        t.permintaan?.statusAdmin === "DITOLAK_ADMIN",
-    ).length;
-    return { waiting, myActive, doneToday, cancelled };
+  /**
+   * 3 kategori stat (non-overlap):
+   *   tersedia   = MENUNGGU_ASSIGN + belum diambil siapa pun + bukan ditolak
+   *   sayaAktif  = petugasId = saya + status aktif + bukan ditolak
+   *   selesaiHariIni = petugasId = saya + status selesai + updatedAt = hari ini
+   */
+  const stats = useMemo(() => {
+    let tersedia = 0;
+    let sayaAktif = 0;
+    let selesaiHariIni = 0;
+
+    for (const t of tugas) {
+      const ditolak = t.permintaan?.statusAdmin === "DITOLAK_ADMIN";
+      if (ditolak) continue;
+
+      if (t.statusTugas === "MENUNGGU_ASSIGN" && !t.petugasId) {
+        tersedia += 1;
+        continue;
+      }
+      if (t.petugasId === meId) {
+        if (
+          ["MENUNGGU_ASSIGN", "DALAM_PROSES", "ON_DELIVERY"].includes(
+            t.statusTugas
+          )
+        ) {
+          sayaAktif += 1;
+        } else if (
+          ["SELESAI", "DELIVERED"].includes(t.statusTugas) &&
+          isToday(t.updatedAt || t.createdAt)
+        ) {
+          selesaiHariIni += 1;
+        }
+      }
+    }
+    return { tersedia, sayaAktif, selesaiHariIni };
   }, [tugas, meId]);
 
-  const prioritasHariIni = useMemo(
-    () =>
-      tugas
-        .filter(
-          (t) =>
-            t.permintaan?.statusAdmin !== "DITOLAK_ADMIN" &&
-            ["MENUNGGU_ASSIGN", "ON_DELIVERY", "DALAM_PROSES"].includes(
-              t.statusTugas,
-            ),
-        )
-        .sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        )
-        .slice(0, 8),
-    [tugas],
-  );
-
-  const tugasSayaAktif = useMemo(
-    () =>
-      tugas
-        .filter(
-          (t) =>
-            t.petugasId === meId &&
-            ["MENUNGGU_ASSIGN", "ON_DELIVERY", "DALAM_PROSES"].includes(
-              t.statusTugas,
-            ) &&
-            t.permintaan?.statusAdmin !== "DITOLAK_ADMIN",
-        )
-        .sort(
-          (a, b) =>
-            new Date(b.updatedAt || b.createdAt).getTime() -
-            new Date(a.updatedAt || a.createdAt).getTime(),
-        ),
-    [tugas, meId],
-  );
-
-  const getStatusLabel = (t) => {
-    if (t.statusTugas === "MENUNGGU_ASSIGN") return "Menunggu diambil";
-    if (t.statusTugas === "ON_DELIVERY") return "Sedang diantar";
-    if (t.statusTugas === "DALAM_PROSES") return "Dalam proses";
-    return t.statusTugas;
-  };
-
-  const getBarangRingkas = (t) =>
-    t.permintaan?.items
-      ?.map((it) => it.barang?.nama)
-      .filter(Boolean)
-      .slice(0, 2)
-      .join(", ") || "-";
+  /**
+   * Konfigurasi 3 stat card.
+   * `href` dipakai untuk drill-down dari kartu ke halaman yang sesuai.
+   */
   const statCards = [
     {
-      key: "waiting",
-      label: "Menunggu Diambil",
-      value: summary.waiting,
+      key: "tersedia",
+      href: "/permintaan/tugas?kepemilikan=TERSEDIA",
+      label: "Tersedia",
+      value: stats.tersedia,
       color: "#f59e0b",
       soft: "#fff7ed",
       icon: "fa-solid fa-hourglass-half",
     },
     {
-      key: "active",
+      key: "saya-aktif",
+      href: "/permintaan/tugas?kepemilikan=SAYA",
       label: "Tugas Saya Aktif",
-      value: summary.myActive,
+      value: stats.sayaAktif,
       color: "#3b82f6",
       soft: "#eff6ff",
       icon: "fa-solid fa-truck-fast",
     },
     {
-      key: "done",
+      key: "selesai-hari-ini",
+      href: "/permintaan/riwayat",
       label: "Selesai Hari Ini",
-      value: summary.doneToday,
-      color: "#16a34a",
+      value: stats.selesaiHariIni,
+      color: "#22c55e",
       soft: "#ecfdf5",
       icon: "fa-solid fa-circle-check",
     },
-    {
-      key: "cancelled",
-      label: "Dibatalkan / Ditolak",
-      value: summary.cancelled,
-      color: "#dc2626",
-      soft: "#fef2f2",
-      icon: "fa-solid fa-ban",
-    },
   ];
 
+  const isEmpty = !loading && tugas.length === 0;
+
+  /* ========================= Render ========================= */
   return (
     <main className="app-content">
-      <h1>Dashboard Petugas</h1>
-      {user && (
-        <p className="app-muted" style={{ marginBottom: "1rem" }}>
-          Halo, <strong>{user.nama}</strong>. Anda login sebagai <strong>Petugas</strong>.
-        </p>
+      {/* ---------- Hero greeting ---------- */}
+      <div className="dashboard-hero">
+        <span className="dashboard-hero-avatar" aria-hidden="true">
+          {getInitials(user?.nama)}
+        </span>
+        <div className="dashboard-hero-body">
+          <p className="dashboard-hero-greet">
+            {getGreeting()},{" "}
+            <span style={{ color: "var(--primary)" }}>
+              {user?.nama || "Petugas"}
+            </span>
+          </p>
+          <p className="dashboard-hero-sub">
+            Ringkasan tugas pengantaran kamu. Klik kartu di bawah untuk lihat
+            detail sesuai statusnya.
+          </p>
+        </div>
+        <div className="dashboard-hero-actions">
+          <Link href="/permintaan/tugas" className="btn-primary">
+            <i className="fa-solid fa-truck-fast" /> Buka Daftar Tugas
+          </Link>
+        </div>
+      </div>
+
+      {/* ---------- Cart alert (kondisional) ---------- */}
+      {cartCount > 0 && (
+        <Link href="/barang" className="dashboard-alert is-info">
+          <span className="dashboard-alert-icon">
+            <i className="fa-solid fa-cart-shopping" />
+          </span>
+          <div className="dashboard-alert-body">
+            <strong>
+              Kamu punya {cartCount} jenis barang ({cartTotalQty} pcs) di
+              keranjang
+            </strong>
+            <p>Lanjutkan ke katalog untuk review dan ajukan permintaan.</p>
+          </div>
+          <i className="fa-solid fa-arrow-right dashboard-alert-arrow" />
+        </Link>
       )}
 
       {error && <p className="app-error">{error}</p>}
 
-      {/* 4 kartu ringkas */}
-      <section style={{ marginBottom: "1.25rem" }}>
-        <div className="stats-grid">
-          {statCards.map((card) => (
-            <div
-              key={card.key}
-              className="stats-card"
-              style={{ "--accent": card.color, "--accent-soft": card.soft }}
-            >
-              <div className="stats-card-head">
-                <span className="stats-icon">
-                  <i className={card.icon} />
-                </span>
-                <div className="stats-value">{card.value}</div>
-              </div>
-              <div className="stats-label">{card.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {loading ? (
-        <p className="app-muted">Memuat data tugas...</p>
+        <p className="app-muted">Memuat...</p>
+      ) : isEmpty ? (
+        /* ---------- Empty state (belum ada tugas sama sekali) ---------- */
+        <div className="empty-state" style={{ marginTop: "1rem" }}>
+          <i className="fa-solid fa-truck" />
+          <div className="empty-state-title">Belum ada tugas</div>
+          <p className="empty-state-sub">
+            Saat ada permintaan disetujui admin, tugas baru akan muncul di{" "}
+            <Link href="/permintaan/tugas" style={{ color: "var(--primary)" }}>
+              Daftar Tugas
+            </Link>
+            .
+          </p>
+        </div>
       ) : (
-        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1rem" }}>
-          {/* Prioritas hari ini */}
-          <div>
-            <div className="page-head" style={{ marginBottom: "0.5rem" }}>
-              <h2 style={{ fontSize: "1.05rem", margin: 0 }}>Prioritas Hari Ini</h2>
-              <Link href="/permintaan/tugas" className="btn-secondary" style={{ fontSize: "0.8rem", padding: "0.35rem 0.7rem" }}>
-                Buka Tugas Aktif
+        /* ---------- 3 Stat Cards (clickable, drill-down) ---------- */
+        <section>
+          <div className="stats-grid">
+            {statCards.map((card) => (
+              <Link
+                key={card.key}
+                href={card.href}
+                className="stats-card-link"
+                title={`Lihat ${card.label.toLowerCase()}`}
+              >
+                <div
+                  className="stats-card"
+                  style={{
+                    "--accent": card.color,
+                    "--accent-soft": card.soft,
+                  }}
+                >
+                  <div className="stats-card-head">
+                    <span className="stats-icon">
+                      <i className={card.icon} />
+                    </span>
+                    <div className="stats-value">{card.value}</div>
+                  </div>
+                  <div className="stats-label">{card.label}</div>
+                </div>
               </Link>
-            </div>
-            {prioritasHariIni.length === 0 ? (
-              <p className="app-muted">Tidak ada tugas prioritas.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="app-table">
-                  <thead>
-                    <tr>
-                      <th>Peminta</th>
-                      <th>Barang</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {prioritasHariIni.map((t) => (
-                      <tr key={t.id}>
-                        <td>{t.permintaan?.peminta?.nama ?? "-"}</td>
-                        <td>{getBarangRingkas(t)}</td>
-                        <td>{getStatusLabel(t)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Tugas saya aktif */}
-          <div>
-            <div className="page-head" style={{ marginBottom: "0.5rem" }}>
-              <h2 style={{ fontSize: "1.05rem", margin: 0 }}>Tugas Saya Aktif</h2>
-              <Link href="/permintaan/tugas" className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.35rem 0.7rem" }}>
-                Kelola
-              </Link>
-            </div>
-            {tugasSayaAktif.length === 0 ? (
-              <p className="app-muted">Belum ada tugas yang kamu ambil.</p>
-            ) : (
-              <div className="table-wrap">
-                <table className="app-table">
-                  <thead>
-                    <tr>
-                      <th>Tanggal</th>
-                      <th>Staff</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tugasSayaAktif.map((t) => (
-                      <tr key={t.id}>
-                        <td>{new Date(t.createdAt).toLocaleDateString("id-ID")}</td>
-                        <td>{t.permintaan?.peminta?.nama ?? "-"}</td>
-                        <td>{getStatusLabel(t)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            ))}
           </div>
         </section>
       )}

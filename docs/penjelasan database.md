@@ -93,7 +93,7 @@ Relasi dari `barang`:
 
 Kolom penting:
 - **`id` (PK)**: UUID permintaan.
-- **`nomor`**: nomor urut (opsional). Saat ini sistem masih sering menampilkan potongan `id` sebagai “kode singkat”.
+- **`kode`**: kode bisnis unik (mis. `P-0001`), gaya sama seperti kode barang `A-0001`, untuk tampilan dan pelacakan.
 - **`peminta_id` (FK → users.id)**: siapa yang minta (staff/admin jika admin juga boleh request).
 - **`status_admin`**: status permintaan (`MENUNGGU_ADMIN`, `DISETUJUI_ADMIN`, `DITOLAK_ADMIN`, `SELESAI`).
 - **`approved_by` (FK → users.id, opsional)**: admin yang menyetujui/menolak (kalau auto-approve, bisa kosong).

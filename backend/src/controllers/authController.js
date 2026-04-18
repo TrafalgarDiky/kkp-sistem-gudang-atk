@@ -24,7 +24,7 @@ const VALID_ROLES = ['STAFF', 'ADMIN', 'PETUGAS'];
  */
 export async function register(req, res) {
   try {
-    const { nama, email, password, role = 'STAFF' } = req.body;
+    const { nama, email, divisi, password, role = 'STAFF' } = req.body;
 
     // Validasi input wajib
     if (!nama?.trim()) {
@@ -32,6 +32,9 @@ export async function register(req, res) {
     }
     if (!email?.trim()) {
       return errorResponse(res, 'Email wajib diisi', 400);
+    }
+    if (!divisi?.trim()) {
+      return errorResponse(res, 'Divisi wajib diisi', 400);
     }
     if (!password || password.length < 6) {
       return errorResponse(res, 'Password minimal 6 karakter', 400);
@@ -54,6 +57,7 @@ export async function register(req, res) {
       data: {
         nama: nama.trim(),
         email: email.trim().toLowerCase(),
+        divisi: divisi.trim(),
         passwordHash,
         role,
         statusAkun: 'BELUM_VERIFIKASI'
@@ -62,6 +66,7 @@ export async function register(req, res) {
         id: true,
         nama: true,
         email: true,
+        divisi: true,
         role: true,
         statusAkun: true,
         createdAt: true
@@ -210,6 +215,50 @@ export async function updateMe(req, res) {
 }
 
 /**
+ * PATCH /api/auth/me/password
+ * Tujuan: user mengganti password sendiri (self-service) saat sudah login.
+ * Body: { passwordLama, passwordBaru }
+ *
+ * Alur:
+ * 1. Ambil user dari DB berdasar req.user.userId (dari JWT).
+ * 2. Verifikasi passwordLama cocok dengan passwordHash di DB.
+ * 3. Hash passwordBaru, simpan.
+ */
+export async function changeMyPassword(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const { passwordLama, passwordBaru } = req.body || {};
+
+    if (!passwordLama || typeof passwordLama !== "string") {
+      return errorResponse(res, "Password lama wajib diisi", 400);
+    }
+    if (!passwordBaru || typeof passwordBaru !== "string" || passwordBaru.length < 6) {
+      return errorResponse(res, "Password baru minimal 6 karakter", 400);
+    }
+    if (passwordLama === passwordBaru) {
+      return errorResponse(res, "Password baru harus berbeda dari password lama", 400);
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return errorResponse(res, "User tidak ditemukan", 404);
+
+    const ok = await comparePassword(passwordLama, user.passwordHash);
+    if (!ok) return errorResponse(res, "Password lama salah", 401);
+
+    const newHash = await hashPassword(passwordBaru);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
+
+    return successResponse(res, "Password berhasil diubah. Silakan login ulang jika diminta.");
+  } catch (err) {
+    console.error("changeMyPassword error:", err);
+    return errorResponse(res, "Gagal mengubah password.", 500);
+  }
+}
+
+/**
  * PATCH /api/auth/users/:id/verify
  * Hanya ADMIN. Set status user jadi AKTIF atau DITOLAK.
  * Body: { status: 'AKTIF' | 'DITOLAK' }
@@ -288,6 +337,7 @@ export async function listUsers(req, res) {
         id: true,
         nama: true,
         email: true,
+        divisi: true,
         role: true,
         statusAkun: true,
         createdAt: true,

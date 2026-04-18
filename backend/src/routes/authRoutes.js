@@ -10,6 +10,7 @@ import {
   login,
   getMe,
   updateMe,
+  changeMyPassword,
   verifyUser,
   listPendingUsers,
   listUsers,
@@ -33,6 +34,7 @@ router.post('/reset-password', resetPasswordWithToken);
 // --- Route profil user yang sedang login ---
 router.get('/me', requireAuth, getMe);
 router.patch('/me', requireAuth, updateMe);
+router.patch('/me/password', requireAuth, changeMyPassword);
 
 // --- Route yang butuh login + role ADMIN ---
 router.get('/pending', requireAuth, requireRole(['ADMIN']), listPendingUsers);

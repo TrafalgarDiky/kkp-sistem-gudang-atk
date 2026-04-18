@@ -2,12 +2,34 @@
 
 /**
  * Sidebar — navigasi samping kiri per role.
- * Admin: 8 menu (Dashboard, Permintaan, Pengantaran, Barang, Restock, Log Stok, User & Role, Laporan) + Profil.
- * Staff: Katalog ATK, Permintaan Saya, Profil.
- * Petugas: Barang, Tugas, Profil.
+ *
+ * Struktur (per role):
+ * - ADMIN:
+ *     UTAMA       : Dashboard
+ *     BARANG      : Stok Barang, Barang Masuk, Log Stok, Laporan
+ *     PERMINTAAN  : Permintaan Masuk, Tugas Petugas
+ *     PENGATURAN  : Profil, Manajemen User
+ *     ---         : Log Out (selalu di paling bawah)
+ *
+ * Catatan:
+ * - Halaman /pengeluaran & /permintaan/buat (untuk admin) sengaja TIDAK
+ *   ditampilkan di sidebar admin. Alasannya:
+ *     /pengeluaran      -> overlap dengan Log Stok + Laporan
+ *     /permintaan/buat  -> admin yang approve, jadi tidak perlu mengajukan ke dirinya sendiri
+ *   Halaman tetap ada (tidak dihapus) untuk keperluan link lama / bookmark.
+ * - STAFF:
+ *     UTAMA       : Dashboard
+ *     OPERASIONAL : Minta Barang, Riwayat Permintaan Barang
+ *     PENGATURAN  : Profil
+ *     ---         : Log Out
+ * - PETUGAS:
+ *     UTAMA       : Dashboard
+ *     OPERASIONAL : Minta Barang, Daftar Tugas, Riwayat Tugas
+ *     PENGATURAN  : Profil
+ *     ---         : Log Out
  */
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
 
@@ -69,7 +91,18 @@ function Badge({ count, variant = "primary", title }) {
 
 export default function Sidebar({ user, mobileOpen, onClose }) {
   const pathname = usePathname();
+  const router = useRouter();
   const role = user?.role || "";
+
+  // Logout: bersihkan session di browser, lalu pindah ke halaman login.
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    if (typeof onClose === "function") onClose();
+    router.push("/login");
+  };
 
   /**
    * Badge notif (client-side) untuk sidebar.
@@ -227,21 +260,25 @@ export default function Sidebar({ user, mobileOpen, onClose }) {
               <span>Dashboard</span>
             </Link>
 
-            <div className="sidebar-group-label">INVENTARIS</div>
+            <div className="sidebar-group-label">BARANG</div>
             <Link href="/barang" className={linkClass("/barang")} onClick={handleNav}>
               <i className="fa-solid fa-boxes-stacked" />
               <span>Stok Barang</span>
             </Link>
             <Link href="/restock" className={linkClass("/restock")} onClick={handleNav}>
               <i className="fa-solid fa-truck-ramp-box" />
-              <span>Pemasukan Barang</span>
+              <span>Barang Masuk</span>
             </Link>
-            <Link href="/pengeluaran" className={linkClass("/pengeluaran")} onClick={handleNav}>
-              <i className="fa-solid fa-arrow-up-from-bracket" />
-              <span>Pengeluaran Barang</span>
+            <Link href="/log-stok" className={linkClass("/log-stok")} onClick={handleNav}>
+              <i className="fa-solid fa-clock-rotate-left" />
+              <span>Log Stok</span>
+            </Link>
+            <Link href="/laporan" className={linkClass("/laporan")} onClick={handleNav}>
+              <i className="fa-solid fa-chart-line" />
+              <span>Laporan</span>
             </Link>
 
-            <div className="sidebar-group-label">OPERASIONAL</div>
+            <div className="sidebar-group-label">PERMINTAAN</div>
             <Link
               href="/permintaan"
               className={linkClass("/permintaan", { exact: true })}
@@ -257,24 +294,27 @@ export default function Sidebar({ user, mobileOpen, onClose }) {
               <Badge count={permintaanBadge?.masukBaru} title="Permintaan baru" />
               <Badge count={permintaanBadge?.ditolakBaru} variant="danger" title="Permintaan ditolak (baru)" />
             </Link>
-            <Link href="/permintaan/buat" className={linkClass("/permintaan/buat")} onClick={handleNav}>
-              <i className="fa-solid fa-pen-to-square" />
-              <span>Minta Barang</span>
-            </Link>
             <Link href="/permintaan/tugas" className={linkClass("/permintaan/tugas")} onClick={handleNav}>
               <i className="fa-solid fa-truck" />
               <span>Tugas Petugas</span>
             </Link>
 
-            <div className="sidebar-group-label">LAPORAN &amp; SISTEM</div>
+            <div className="sidebar-group-label">PENGATURAN</div>
+            <Link href="/profil" className={linkClass("/profil")} onClick={handleNav}>
+              <i className="fa-solid fa-user" />
+              <span>Profil</span>
+            </Link>
             <Link href="/users" className={linkClass("/users")} onClick={handleNav}>
               <i className="fa-solid fa-users-gear" />
               <span>Manajemen User</span>
             </Link>
-            <Link href="/pengaturan" className={linkClass("/pengaturan")} onClick={handleNav}>
-              <i className="fa-solid fa-gear" />
-              <span>Pengaturan</span>
-            </Link>
+
+            <div className="sidebar-spacer" />
+            <div className="sidebar-divider" />
+            <button type="button" className="sidebar-link" onClick={handleLogout}>
+              <i className="fa-solid fa-right-from-bracket" />
+              <span>Log Out</span>
+            </button>
           </>
         )}
 
@@ -298,10 +338,17 @@ export default function Sidebar({ user, mobileOpen, onClose }) {
             </Link>
 
             <div className="sidebar-group-label">PENGATURAN</div>
-            <Link href="/pengaturan" className={linkClass("/pengaturan")} onClick={handleNav}>
-              <i className="fa-solid fa-gear" />
-              <span>Pengaturan</span>
+            <Link href="/profil" className={linkClass("/profil")} onClick={handleNav}>
+              <i className="fa-solid fa-user" />
+              <span>Profil</span>
             </Link>
+
+            <div className="sidebar-spacer" />
+            <div className="sidebar-divider" />
+            <button type="button" className="sidebar-link" onClick={handleLogout}>
+              <i className="fa-solid fa-right-from-bracket" />
+              <span>Log Out</span>
+            </button>
           </>
         )}
 
@@ -330,10 +377,17 @@ export default function Sidebar({ user, mobileOpen, onClose }) {
             </Link>
 
             <div className="sidebar-group-label">PENGATURAN</div>
-            <Link href="/pengaturan" className={linkClass("/pengaturan")} onClick={handleNav}>
-              <i className="fa-solid fa-gear" />
-              <span>Pengaturan</span>
+            <Link href="/profil" className={linkClass("/profil")} onClick={handleNav}>
+              <i className="fa-solid fa-user" />
+              <span>Profil</span>
             </Link>
+
+            <div className="sidebar-spacer" />
+            <div className="sidebar-divider" />
+            <button type="button" className="sidebar-link" onClick={handleLogout}>
+              <i className="fa-solid fa-right-from-bracket" />
+              <span>Log Out</span>
+            </button>
           </>
         )}
       </nav>
