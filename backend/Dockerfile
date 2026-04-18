@@ -8,7 +8,8 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+COPY scripts/prisma-postinstall.cjs scripts/prisma-postinstall.cjs
+RUN npm ci
 
 COPY . .
 ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build?schema=public"

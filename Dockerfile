@@ -10,8 +10,9 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 
 COPY backend/package.json backend/package-lock.json ./
-# Jangan jalankan postinstall saat npm ci: schema Prisma belum di-copy, dan prisma.config.ts butuh DATABASE_URL.
-RUN npm ci --ignore-scripts
+# Skrip postinstall cek prisma/schema.prisma — belum ada sampai COPY backend/ → tidak jalan prisma generate.
+COPY backend/scripts/prisma-postinstall.cjs scripts/prisma-postinstall.cjs
+RUN npm ci
 
 COPY backend/ ./
 # prisma.config.ts wajib DATABASE_URL meski generate tidak menghubungi DB nyata.
