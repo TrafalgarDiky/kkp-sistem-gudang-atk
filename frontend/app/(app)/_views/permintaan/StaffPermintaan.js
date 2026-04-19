@@ -450,10 +450,7 @@ export default function StaffPermintaan() {
                     </td>
                     <td>
                       {petugas ? (
-                        <UserCell
-                          nama={petugas.nama}
-                          email={petugas.email}
-                        />
+                        <UserCell name={petugas.nama} />
                       ) : (
                         <span
                           className="app-muted"
@@ -534,8 +531,7 @@ export default function StaffPermintaan() {
                 <div>
                   {detailPermintaan.tugasPetugas?.[0]?.petugas ? (
                     <UserCell
-                      nama={detailPermintaan.tugasPetugas[0].petugas.nama}
-                      email={detailPermintaan.tugasPetugas[0].petugas.email}
+                      name={detailPermintaan.tugasPetugas[0].petugas.nama}
                     />
                   ) : (
                     <span

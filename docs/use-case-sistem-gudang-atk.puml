@@ -1,10 +1,18 @@
 @startuml use-case-sistem-gudang-atk
 ' ============================================================
-' Use Case — Sistem Informasi Gudang ATK (sesuai sidebar + API)
-' Cara pakai di diagrams.net (app.diagrams.net):
-'   Arrange → Insert → Advanced → PlantUML
-'   Lalu tempel isi file ini (tanpa baris komentar jika error).
-' Alternatif: vscode extension PlantUML / plantuml.com
+' Use Case — Sistem Informasi Gudang ATK
+' Sinkron dengan backend + frontend (audit kode proyek)
+'
+' Perbedaan penting vs versi lama:
+' - GET /api/barang & halaman /barang butuh LOGIN (AuthGuard) → Tamu
+'   TIDAK punya use case "lihat katalog".
+' - POST /api/permintaan: role STAFF, ADMIN, PETUGAS (permintaanRoutes.js).
+' - PATCH /api/permintaan/:id/batal: hanya STAFF (permintaan sendiri).
+' - Tugas petugas: ambil / lepas / update status (endpoint terpisah di API).
+' - POST /api/upload gambar barang: hanya ADMIN (uploadRoutes.js).
+' - Sidebar: Admin punya menu Profil terpisah (/profil); semua role login punya Profil.
+'
+' Render: diagrams.net → Susun → Sisipkan → Tingkat lanjut → PlantUML
 ' ============================================================
 
 title Use Case Diagram — Sistem Informasi Gudang ATK
@@ -22,7 +30,6 @@ actor "Petugas Gudang" as Petugas
 
 rectangle "Sistem Informasi Gudang ATK" {
 
-  ' ===== Layout biar 2 kolom (lebih pendek) =====
   together {
     package "Autentikasi & akun publik" {
       usecase "UC-01\nDaftar akun" as UC01
@@ -30,7 +37,7 @@ rectangle "Sistem Informasi Gudang ATK" {
       usecase "UC-03\nLupa kata sandi /\nreset via email" as UC03
     }
 
-    package "Profil & ringkasan (semua role login)" {
+    package "Profil & ringkasan\n(semua role login)" {
       usecase "UC-04\nLihat / ubah profil" as UC04
       usecase "UC-05\nLihat dashboard" as UC05
     }
@@ -38,7 +45,7 @@ rectangle "Sistem Informasi Gudang ATK" {
 
   together {
     package "Admin — barang & stok" {
-      usecase "UC-06\nKelola master barang\n(tambah/ubah/hapus)" as UC06
+      usecase "UC-06\nKelola master barang\n+ unggah gambar" as UC06
       usecase "UC-07\nCatat barang masuk\n(restock)" as UC07
       usecase "UC-08\nLihat log perubahan stok" as UC08
       usecase "UC-09\nLihat laporan" as UC09
@@ -53,25 +60,26 @@ rectangle "Sistem Informasi Gudang ATK" {
   }
 
   together {
-    package "Staff — permintaan" {
+    package "Permintaan & katalog\n(setelah login)" {
       usecase "UC-14\nLihat daftar barang /\nstok" as UC14
       usecase "UC-15\nAjukan permintaan ATK" as UC15
-      usecase "UC-16\nLihat riwayat permintaan" as UC16
+      usecase "UC-16\nLihat riwayat permintaan\n(milik sendiri)" as UC16
+      usecase "UC-17\nBatalkan permintaan\n(milik sendiri)" as UC17
     }
 
     package "Petugas — penanganan tugas" {
-      usecase "UC-18\nKelola status tugas\n(sampai selesai)" as UC18
+      usecase "UC-18\nKelola tugas\n(ambil / lepas / selesai)" as UC18
       usecase "UC-19\nLihat riwayat tugas" as UC19
     }
   }
 }
 
-' --- Tamu: hanya auth publik ---
+' Tamu: tidak bisa akses API barang tanpa token
 Tamu --> UC01
 Tamu --> UC02
 Tamu --> UC03
 
-' --- Semua pengguna terautentikasi: profil + dashboard ---
+' Profil + dashboard: semua role terautentikasi
 Admin --> UC04
 Admin --> UC05
 Staff --> UC04
@@ -79,7 +87,7 @@ Staff --> UC05
 Petugas --> UC04
 Petugas --> UC05
 
-' --- Admin: modul barang & organisasi ---
+' Admin: inventaris + organisasi
 Admin --> UC06
 Admin --> UC07
 Admin --> UC08
@@ -89,17 +97,27 @@ Admin --> UC11
 Admin --> UC12
 Admin --> UC13
 
-' --- Staff: permintaan ---
+' Katalog: semua role login (GET /api/barang)
+Admin --> UC14
 Staff --> UC14
-Staff --> UC15
-Staff --> UC16
-
-' --- Petugas: tugas (API update tugas = PETUGAS) ---
 Petugas --> UC14
+
+' Buat permintaan: STAFF + ADMIN + PETUGAS (bukan Tamu)
+Staff --> UC15
+Admin --> UC15
+Petugas --> UC15
+
+' Riwayat & batal: khusus Staff (API batal = STAFF)
+Staff --> UC16
+Staff --> UC17
+
+' Petugas: tugas
 Petugas --> UC18
 Petugas --> UC19
 
+' Mengajukan permintaan menyertakan melihat daftar barang/item
 UC15 ..> UC14 : <<include>>
+
 hide footbox
 
 @enduml
