@@ -1,0 +1,170 @@
+@startuml use-case-GATK-perbaikan
+/'
+  ============================================================
+  Use Case Diagram — Sistem Gudang ATK (GATK) — RAPIH & SELARAS KODE
+  Repo acuan: kkp-sistem-gudang-atk
+
+  Permintaan khusus:
+  - Petugas difokuskan ke APK Android (Flutter) saja.
+  - Use case halaman web Petugas tidak disertakan.
+
+  Cara render:
+  - Online: https://www.plantuml.com/plantuml
+  - VS Code/Cursor: extension "PlantUML" → Preview
+  - diagrams.net: Susun → Sisipkan → Tingkat lanjut → PlantUML
+  ============================================================
+'/
+
+title Use Case Diagram — Sistem Gudang ATK (GATK)\n(Web: Admin & Staff) + (Android APK: Petugas)
+
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam linetype ortho
+skinparam shadowing false
+left to right direction
+
+actor "Pengunjung\n(belum login)" as Guest
+actor "Admin" as Admin
+actor "Staff" as Staff
+actor "Petugas\n(Android APK)" as Petugas
+
+rectangle "Sistem Gudang ATK (GATK)" {
+
+  ' =========================
+  ' AREA WEB (ADMIN + STAFF)
+  ' =========================
+  package "WEB — Akses publik" {
+    usecase "Register" as WEB_Reg
+    usecase "Login (Web)" as WEB_Login
+    usecase "Lupa / Reset Password" as WEB_ResetPw
+  }
+
+  package "WEB — Profil (Admin & Staff)" {
+    usecase "Kelola Profil\n(lihat/ubah data, ubah password)" as WEB_Profil
+    usecase "Logout (Web)" as WEB_Logout
+  }
+
+  package "WEB — Admin: verifikasi & pengguna" {
+    usecase "Verifikasi User\n(aktifkan / tolak)" as ADM_VerifUser
+    usecase "Manajemen User" as ADM_ManUser
+  }
+
+  package "WEB — Admin: gudang & laporan" {
+    usecase "Kelola Master Barang\n+ Upload Gambar" as ADM_Barang
+    usecase "Input Barang Masuk\n(Restock)" as ADM_Restock
+    usecase "Lihat Log Stok" as ADM_LogStok
+    usecase "Lihat Laporan" as ADM_Laporan
+  }
+
+  package "WEB — Permintaan ATK" {
+    usecase "Lihat Daftar Barang\n(katalog / stok)" as REQ_Katalog
+    usecase "Ajukan / Minta Barang" as REQ_Ajukan
+    usecase "Lihat Riwayat Permintaan\n(milik sendiri)" as REQ_Riwayat
+    usecase "Batalkan Permintaan\n(milik sendiri)" as REQ_Batal
+
+    usecase "Kelola Permintaan\n(approve/tolak/lock)" as ADM_KelolaPermintaan
+    usecase "Pantau Tugas Petugas\n(dari Admin)" as ADM_PantauTugas
+  }
+
+  ' =========================
+  ' AREA ANDROID APK (PETUGAS)
+  ' =========================
+  package "ANDROID APK — Petugas" {
+    usecase "Login (Mobile)" as MOB_Login
+    usecase "Logout (Mobile)" as MOB_Logout
+    usecase "Lihat / Refresh Profil" as MOB_Profil
+
+    usecase "Lihat Daftar Tugas" as MOB_ListTugas
+    usecase "Ambil / Lepas Tugas" as MOB_AmbilLepas
+    usecase "Selesaikan Tugas\n(antar barang)" as MOB_Selesai
+    usecase "Lihat Riwayat Tugas" as MOB_RiwayatTugas
+  }
+
+  ' Proses sistem (bukan layar user)
+  usecase "Update Stok Otomatis\n+ Tulis Log Stok" as SYS_AutoStok
+}
+
+' ==============
+' AKSES PUBLIK
+' ==============
+Guest --> WEB_Reg
+Guest --> WEB_Login
+Guest --> WEB_ResetPw
+
+' Register menunggu verifikasi admin (alur bisnis)
+WEB_Reg ..> ADM_VerifUser : <<include>>
+
+' ===========================
+' WEB: LOGIN & PROFIL
+' ===========================
+Admin --> WEB_Login
+Admin --> WEB_Profil
+Admin --> WEB_Logout
+
+Staff --> WEB_Login
+Staff --> WEB_Profil
+Staff --> WEB_Logout
+
+' ===========================
+' WEB: ADMIN
+' ===========================
+Admin --> ADM_VerifUser
+Admin --> ADM_ManUser
+
+Admin --> ADM_Barang
+Admin --> ADM_Restock
+Admin --> ADM_LogStok
+Admin --> ADM_Laporan
+
+Admin --> REQ_Katalog
+Admin --> ADM_KelolaPermintaan
+Admin --> ADM_PantauTugas
+
+' ===========================
+' WEB: STAFF
+' ===========================
+Staff --> REQ_Katalog
+Staff --> REQ_Ajukan
+Staff --> REQ_Riwayat
+Staff --> REQ_Batal
+
+' Ajukan permintaan biasanya perlu lihat katalog barang dulu
+REQ_Ajukan ..> REQ_Katalog : <<include>>
+
+' Admin mengelola permintaan lalu memantau tugas petugas
+ADM_KelolaPermintaan ..> ADM_PantauTugas : <<include>>
+
+' ===========================
+' ANDROID APK: PETUGAS SAJA
+' ===========================
+Petugas --> MOB_Login
+Petugas --> MOB_Logout
+Petugas --> MOB_Profil
+
+Petugas --> MOB_ListTugas
+Petugas --> MOB_AmbilLepas
+Petugas --> MOB_Selesai
+Petugas --> MOB_RiwayatTugas
+
+' Selesai antar → sistem kurangi stok + log
+MOB_Selesai ..> SYS_AutoStok : <<include>>
+
+note right of MOB_Login
+  **Catatan implementasi:**
+  Login Mobile memanggil endpoint yang sama
+  dengan Login web (`POST /api/auth/login`).
+  Perbedaan hanya aplikasi klien (Flutter).
+end note
+
+note bottom of REQ_Batal
+  Di backend, pembatalan permintaan
+  dibatasi untuk role STAFF dan permintaan milik sendiri.
+end note
+
+note bottom of ADM_VerifUser
+  Akun baru berstatus **BELUM_VERIFIKASI**
+  sampai Admin menyetujui.
+end note
+
+hide footbox
+@enduml

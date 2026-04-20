@@ -5,7 +5,7 @@
  * Cara kerja toggle (sesuai script kamu):
  * - Saat register tampil: hero.register + form.register punya class "active", card-bg tanpa class "login" (background ungu di kiri).
  * - Saat klik LOGIN: toggleView() → hero.login + form.login dapat "active", card-bg dapat "login" (background ungu geser ke kanan).
- * - Saat klik SIGN UP: toggleView() → kembali ke register active, card-bg tanpa "login".
+ * - Saat klik DAFTAR: toggleView() → kembali ke register active, card-bg tanpa "login".
  */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -175,10 +175,10 @@ export default function LoginPage() {
 
         {/* HERO REGISTER — tampil saat register active */}
         <div className={`hero register ${!isLoginView ? "active" : ""}`}>
-          <h2>Welcome back</h2>
-          <p>Login jika sudah mendaftar.</p>
+          <h2>Selamat datang</h2>
+          <p>Masuk jika sudah mendaftar</p>
           <button type="button" onClick={toggleView}>
-            LOGIN
+            MASUK
           </button>
         </div>
 
@@ -236,7 +236,7 @@ export default function LoginPage() {
               <p className={regMessage.type === "error" ? "error-msg" : "success-msg"}>{regMessage.text}</p>
             )}
             <button type="submit" disabled={regLoading}>
-              {regLoading ? "Loading..." : "SIGN UP"}
+              {regLoading ? "Loading..." : "DAFTAR"}
             </button>
           </form>
         </div>
@@ -246,13 +246,13 @@ export default function LoginPage() {
           <h2>Holla</h2>
           <p>Mulai daftar kelola permintaan Anda.</p>
           <button type="button" onClick={toggleView}>
-            SIGN UP
+            DAFTAR
           </button>
         </div>
 
         {/* FORM LOGIN */}
         <div className={`form login ${isLoginView ? "active" : ""}`}>
-          <h2>Login</h2>
+          <h2>Masuk</h2>
           <p>Gunakan akun Anda</p>
           <form onSubmit={handleLogin} autoComplete="on">
             <input
