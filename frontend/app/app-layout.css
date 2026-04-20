@@ -1466,6 +1466,71 @@ button.sidebar-link {
   color: #475569;
 }
 
+/* ================== FILTER DROPDOWN ================== */
+
+/**
+ * Dropdown filter ringan tanpa library:
+ * - Pakai <details><summary> supaya aksesibel & simpel.
+ * - summary kita styling seperti tombol .btn-icon.
+ */
+.filter-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-dropdown > summary {
+  list-style: none;
+}
+
+.filter-dropdown > summary::-webkit-details-marker {
+  display: none;
+}
+
+.filter-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 80;
+  min-width: 340px;
+  max-width: min(92vw, 520px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  padding: 0.85rem 0.95rem;
+}
+
+.filter-dropdown-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.filter-dropdown-title strong {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.filter-dropdown .log-filter-bar {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 520px) {
+  .filter-dropdown-menu {
+    right: auto;
+    left: 0;
+    min-width: min(92vw, 520px);
+  }
+}
+
 /* ================== TOAST NOTIFICATION ================== */
 
 /**

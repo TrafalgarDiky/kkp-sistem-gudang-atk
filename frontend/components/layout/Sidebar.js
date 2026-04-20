@@ -6,7 +6,7 @@
  * Struktur (per role):
  * - ADMIN:
  *     UTAMA       : Dashboard
- *     BARANG      : Stok Barang, Barang Masuk, Log Stok, Laporan
+ *     BARANG      : Stok Barang, Barang Masuk, Barang Keluar, Log Stok, Laporan
  *     PERMINTAAN  : Permintaan Masuk, Tugas Petugas
  *     PENGATURAN  : Profil, Manajemen User
  *     ---         : Log Out (selalu di paling bawah)
@@ -268,6 +268,10 @@ export default function Sidebar({ user, mobileOpen, onClose }) {
             <Link href="/restock" className={linkClass("/restock")} onClick={handleNav}>
               <i className="fa-solid fa-truck-ramp-box" />
               <span>Barang Masuk</span>
+            </Link>
+            <Link href="/pengeluaran" className={linkClass("/pengeluaran")} onClick={handleNav}>
+              <i className="fa-solid fa-truck-arrow-right" />
+              <span>Barang Keluar</span>
             </Link>
             <Link href="/log-stok" className={linkClass("/log-stok")} onClick={handleNav}>
               <i className="fa-solid fa-clock-rotate-left" />
