@@ -14,6 +14,7 @@
  */
 import { useEffect, useState } from "react";
 import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
+import { SATUAN_OPTIONS, normalizeSatuan } from "@/lib/satuan-options";
 import { useCart } from "@/lib/useCart";
 import CartDrawer from "@/components/cart/CartDrawer";
 
@@ -53,7 +54,13 @@ export default function StaffBarang() {
         headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
       });
       const data = await res.json();
-      if (data.success) setBarang(data.data?.barang || []);
+      if (data.success) {
+        const normalized = (data.data?.barang || []).map((b) => ({
+          ...b,
+          satuan: normalizeSatuan(b.satuan),
+        }));
+        setBarang(normalized);
+      }
       else setError(data.message || "Gagal memuat barang");
     } catch {
       setError("Koneksi gagal. Pastikan backend jalan.");
@@ -68,9 +75,10 @@ export default function StaffBarang() {
 
   // ========== Derived ==========
 
-  const satuanList = [
-    ...new Set(barang.map((b) => b.satuan).filter(Boolean)),
-  ].sort();
+  // Filter satuan hanya menampilkan daftar baku.
+  const satuanList = SATUAN_OPTIONS.filter((s) =>
+    barang.some((b) => normalizeSatuan(b.satuan) === s)
+  );
 
   const getKategori = (nama = "", satuan = "") => {
     const n = nama.toLowerCase();
@@ -100,7 +108,7 @@ export default function StaffBarang() {
   const filteredBarang = barang.filter((b) => {
     const matchSearch =
       !search || b.nama.toLowerCase().includes(search.toLowerCase());
-    const matchSatuan = !filterSatuan || b.satuan === filterSatuan;
+    const matchSatuan = !filterSatuan || normalizeSatuan(b.satuan) === filterSatuan;
     const kategori = getKategori(b.nama, b.satuan);
     const matchKategori =
       filterKategori === "SEMUA" || kategori === filterKategori;

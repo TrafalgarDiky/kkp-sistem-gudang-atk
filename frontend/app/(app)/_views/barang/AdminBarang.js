@@ -3,6 +3,7 @@
 /** Barang — tampilan tabel + CRUD + upload gambar (Admin) */
 import { useEffect, useMemo, useState } from "react";
 import { apiUrl, getAuthHeaders, resolveBarangImageSrc } from "@/lib/api";
+import { SATUAN_OPTIONS, normalizeSatuan } from "@/lib/satuan-options";
 
 const initialForm = { kode: "", nama: "", satuan: "", stok: "", stokMinimum: "", deskripsi: "", gambarUrl: "" };
 
@@ -37,6 +38,48 @@ function getStockStatus(stok, stokMin) {
     return { variant: "low", label: "Menipis", show: true };
   }
   return { variant: "ok", label: "OK", show: false };
+}
+
+/**
+ * Samakan tampilan kode barang ke pola ATK-00078.
+ * Catatan: ini format tampilan (display), bukan mengubah data mentah di DB.
+ */
+function formatBarangKode(kode) {
+  const raw = String(kode || "").trim();
+  if (!raw) return "—";
+
+  const atk = /^ATK-(\d+)$/i.exec(raw);
+  if (atk) return `ATK-${atk[1].padStart(5, "0")}`;
+
+  const legacy = /^A-(\d+)$/i.exec(raw);
+  if (legacy) return `ATK-${legacy[1].padStart(5, "0")}`;
+
+  return raw.toUpperCase();
+}
+
+/**
+ * Input kode dari UI (ATK-xxxxx / A-xxxx) -> format backend (A-xxxx).
+ * Return null jika format tidak valid.
+ */
+function toApiBarangKode(input) {
+  const raw = String(input || "").trim().toUpperCase();
+  if (!raw) return null;
+
+  const atk = /^ATK-(\d+)$/.exec(raw);
+  if (atk) {
+    const num = Number(atk[1]);
+    if (!Number.isFinite(num)) return null;
+    return `A-${String(num).padStart(4, "0")}`;
+  }
+
+  const legacy = /^A-(\d+)$/.exec(raw);
+  if (legacy) {
+    const num = Number(legacy[1]);
+    if (!Number.isFinite(num)) return null;
+    return `A-${String(num).padStart(4, "0")}`;
+  }
+
+  return null;
 }
 
 export default function AdminBarang() {
@@ -94,8 +137,10 @@ export default function AdminBarang() {
     const q = search.trim().toLowerCase();
     if (!q) return barang;
     return barang.filter((b) => {
+      const kodeDisplay = formatBarangKode(b.kode).toLowerCase();
       return (
         (b.kode || "").toLowerCase().includes(q) ||
+        kodeDisplay.includes(q) ||
         (b.nama || "").toLowerCase().includes(q) ||
         (b.deskripsi || "").toLowerCase().includes(q)
       );
@@ -125,9 +170,9 @@ export default function AdminBarang() {
   const openEdit = (b) => {
     setEditingId(b.id);
     setForm({
-      kode: b.kode || "",
+      kode: formatBarangKode(b.kode),
       nama: b.nama || "",
-      satuan: b.satuan || "",
+      satuan: normalizeSatuan(b.satuan),
       stok: String(b.stok ?? ""),
       stokMinimum: b.stokMinimum != null ? String(b.stokMinimum) : "",
       deskripsi: b.deskripsi || "",
@@ -184,14 +229,23 @@ export default function AdminBarang() {
         }
         gambarUrl = upData.data?.url || null;
       }
+      if (editingId) {
+        const kodeApi = toApiBarangKode(form.kode);
+        if (!kodeApi) {
+          setModalError("Format kode barang harus seperti ATK-00078.");
+          setSubmitLoading(false);
+          return;
+        }
+      }
+
       const url = editingId
         ? apiUrl(`/api/barang/${editingId}`)
         : apiUrl("/api/barang");
       const method = editingId ? "PATCH" : "POST";
       const body = {
-        ...(editingId ? { kode: form.kode.trim() } : {}),
+        ...(editingId ? { kode: toApiBarangKode(form.kode) } : {}),
         nama: form.nama.trim(),
-        satuan: form.satuan.trim(),
+        satuan: normalizeSatuan(form.satuan),
         stok: Number(form.stok) || 0,
         stokMinimum: form.stokMinimum === "" ? null : Number(form.stokMinimum) || null,
         deskripsi: form.deskripsi.trim() || null,
@@ -207,7 +261,13 @@ export default function AdminBarang() {
         closeModal();
         fetchBarang();
       } else {
-        setModalError(data.message || "Gagal menyimpan");
+        const rawMsg = data.message || "Gagal menyimpan";
+        // Pesan backend lama masih menyebut format A-0001; tampilkan versi UI terbaru.
+        if (rawMsg.toLowerCase().includes("format kode barang harus seperti a-0001")) {
+          setModalError("Format kode barang harus seperti ATK-00078.");
+        } else {
+          setModalError(rawMsg);
+        }
       }
     } catch (err) {
       setModalError("Koneksi gagal");
@@ -348,7 +408,7 @@ export default function AdminBarang() {
                           </span>
                         )}
                       </td>
-                      <td><code>{b.kode || "—"}</code></td>
+                      <td><code>{formatBarangKode(b.kode)}</code></td>
                       <td>{b.nama}</td>
                       <td>{b.satuan}</td>
                       <td>
@@ -441,7 +501,7 @@ export default function AdminBarang() {
       {/* ============ MODAL: Tambah / Edit Barang ============ */}
       {modalOpen && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box modal-barang-form" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingId ? "Edit Barang" : "Tambah Barang"}</h2>
               <button
@@ -456,21 +516,21 @@ export default function AdminBarang() {
             </div>
             {editingId && (
               <p className="modal-subtitle">
-                Kode <strong>{form.kode || "—"}</strong>
+                Kode <strong>{formatBarangKode(form.kode)}</strong>
               </p>
             )}
             <div className="modal-divider" />
 
             <form onSubmit={handleSubmit}>
-              {/* Kode — hanya tampil di mode Edit */}
+              {/* Kode barang: bisa diubah saat edit, format tampilan ATK-00078 */}
               {editingId && (
                 <>
                   <label>Kode <span className="required">*</span></label>
                   <input
                     type="text"
                     value={form.kode}
-                    onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value }))}
-                    placeholder="A-0001"
+                    onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value.toUpperCase() }))}
+                    placeholder="ATK-00078"
                     required
                   />
                 </>
@@ -487,13 +547,24 @@ export default function AdminBarang() {
               />
 
               <label>Satuan <span className="required">*</span></label>
-              <input
-                type="text"
+              <select
                 value={form.satuan}
                 onChange={(e) => setForm((f) => ({ ...f, satuan: e.target.value }))}
-                placeholder="buah, box, pack"
                 required
-              />
+              >
+                <option value="" disabled>
+                  Pilih satuan
+                </option>
+                {SATUAN_OPTIONS.map((s) => (
+                  <option key={s} value={s}>
+                    {s.toUpperCase()}
+                  </option>
+                ))}
+                {/* Kompatibilitas data lama jika satuan sebelumnya di luar daftar opsi */}
+                {form.satuan && !SATUAN_OPTIONS.includes(form.satuan) && (
+                  <option value={form.satuan}>{form.satuan} (data lama)</option>
+                )}
+              </select>
 
               {/* Stok & Stok Minimum — berdampingan agar hemat tinggi */}
               <div className="form-row-2col">

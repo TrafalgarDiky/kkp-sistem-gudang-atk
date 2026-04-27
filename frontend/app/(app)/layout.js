@@ -13,6 +13,10 @@ export default function AppLayout({ children }) {
   const [user, setUser] = useState(null);
   /** Drawer sidebar di layar sempit (HP) */
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  /** Desktop: mode sidebar icon-only (collapsed) */
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  /** Penanda viewport mobile agar ikon menu bisa kontekstual */
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
 
   useEffect(() => {
     const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -41,16 +45,53 @@ export default function AppLayout({ children }) {
     return () => mq.removeEventListener("change", closeOnWide);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 768px)");
+    const syncViewport = (ev) => setIsMobileViewport(ev.matches);
+    setIsMobileViewport(mq.matches);
+    mq.addEventListener("change", syncViewport);
+    return () => mq.removeEventListener("change", syncViewport);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("sidebar:collapsed");
+    setDesktopSidebarCollapsed(raw === "1");
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("sidebar:collapsed", desktopSidebarCollapsed ? "1" : "0");
+  }, [desktopSidebarCollapsed]);
+
+  const handleMenuClick = () => {
+    if (typeof window === "undefined") return;
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
+    if (isMobile) {
+      setMobileNavOpen((v) => !v);
+      return;
+    }
+    setDesktopSidebarCollapsed((v) => !v);
+  };
+
   return (
     <AuthGuard>
-      <div className="app-shell">
+      <div className={`app-shell${desktopSidebarCollapsed ? " sidebar-collapsed" : ""}`}>
         <Header
           user={user}
-          onMenuClick={() => setMobileNavOpen((v) => !v)}
+          onMenuClick={handleMenuClick}
           menuOpen={mobileNavOpen}
+          desktopCollapsed={desktopSidebarCollapsed}
+          isMobileView={isMobileViewport}
         />
         <div className="app-body">
-          <Sidebar user={user} mobileOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
+          <Sidebar
+            user={user}
+            mobileOpen={mobileNavOpen}
+            collapsed={desktopSidebarCollapsed}
+            onClose={() => setMobileNavOpen(false)}
+          />
           <div className="app-main">{children}</div>
           <button
             type="button"

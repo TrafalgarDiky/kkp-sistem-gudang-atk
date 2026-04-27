@@ -145,7 +145,7 @@ export default function PengeluaranPage() {
 
   return (
     <main className="app-content">
-      {/* ============ TOOLBAR (seragam dengan Barang Masuk) ============ */}
+      {/* ============ TOOLBAR ============ */}
       <div className="list-toolbar">
         <div>
           <h1>Pengeluaran Barang</h1>
@@ -269,7 +269,7 @@ export default function PengeluaranPage() {
                   <th>Peminta</th>
                   <th>Diantar oleh</th>
                   <th>Disetujui oleh</th>
-                  <th>Barang (ringkas)</th>
+                  <th>Barang/Jumlah</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
