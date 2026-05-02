@@ -62,8 +62,8 @@ export default function Header({ user, onMenuClick, menuOpen, desktopCollapsed, 
         setProfileOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("pointerdown", handleOutsideClick);
+    return () => document.removeEventListener("pointerdown", handleOutsideClick);
   }, []);
 
   useEffect(() => {
@@ -216,6 +216,19 @@ export default function Header({ user, onMenuClick, menuOpen, desktopCollapsed, 
     });
   };
 
+  const handleNotifButton = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleNotifToggle();
+  };
+
+  const handleProfileButton = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setNotifOpen(false);
+    setProfileOpen((v) => !v);
+  };
+
   const notifListHref =
     user?.role === "PETUGAS" ? "/permintaan/tugas" : user?.role === "ADMIN" ? "/permintaan" : "/notifikasi";
 
@@ -263,7 +276,7 @@ export default function Header({ user, onMenuClick, menuOpen, desktopCollapsed, 
             aria-label="Buka notifikasi"
             title="Notifikasi"
             aria-expanded={notifOpen}
-            onClick={handleNotifToggle}
+            onClick={handleNotifButton}
           >
             <i className="fa-regular fa-bell" aria-hidden="true" />
             {notifCount > 0 && (
@@ -309,10 +322,7 @@ export default function Header({ user, onMenuClick, menuOpen, desktopCollapsed, 
             className="app-user-trigger"
             aria-label="Menu profil"
             aria-expanded={profileOpen}
-            onClick={() => {
-              setNotifOpen(false);
-              setProfileOpen((v) => !v);
-            }}
+            onClick={handleProfileButton}
           >
             <span className="app-user-icon" aria-hidden="true">
               <i className="fa-regular fa-user" />

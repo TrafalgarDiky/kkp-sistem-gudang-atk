@@ -30,7 +30,7 @@
  *     ---         : Log Out
  */
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { apiUrl, getAuthHeaders } from "@/lib/api";
 
@@ -93,7 +93,17 @@ function Badge({ count, variant = "primary", title }) {
 
 export default function Sidebar({ user, mobileOpen, collapsed, onClose }) {
   const pathname = usePathname();
+  const router = useRouter();
   const role = user?.role || "";
+
+  const handleLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    if (typeof onClose === "function") onClose();
+    router.push("/login");
+  };
 
   /**
    * Badge notif (client-side) untuk sidebar.
@@ -355,6 +365,17 @@ export default function Sidebar({ user, mobileOpen, collapsed, onClose }) {
               <span>Riwayat Tugas</span>
             </Link>
 
+          </>
+        )}
+
+        {Boolean(role) && (
+          <>
+            <div className="sidebar-spacer" />
+            <div className="sidebar-divider" />
+            <button type="button" className="sidebar-link" onClick={handleLogout}>
+              <i className="fa-solid fa-right-from-bracket" />
+              <span>Log Out</span>
+            </button>
           </>
         )}
       </nav>
