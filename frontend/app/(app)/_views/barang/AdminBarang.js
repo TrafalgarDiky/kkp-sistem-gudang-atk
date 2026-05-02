@@ -522,18 +522,25 @@ export default function AdminBarang() {
             <div className="modal-divider" />
 
             <form onSubmit={handleSubmit}>
-              {/* Kode barang: bisa diubah saat edit, format tampilan ATK-00078 */}
-              {editingId && (
-                <>
-                  <label>Kode <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    value={form.kode}
-                    onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value.toUpperCase() }))}
-                    placeholder="ATK-00078"
-                    required
-                  />
-                </>
+              {/* Kode barang: edit = bisa diubah, tambah = otomatis dibuat sistem */}
+              <label>
+                Kode {editingId && <span className="required">*</span>}
+              </label>
+              {editingId ? (
+                <input
+                  type="text"
+                  value={form.kode}
+                  onChange={(e) => setForm((f) => ({ ...f, kode: e.target.value.toUpperCase() }))}
+                  placeholder="ATK-00078"
+                  required
+                />
+              ) : (
+                <input
+                  type="text"
+                  value="Otomatis dibuat sistem (ATK-xxxxx)"
+                  disabled
+                  readOnly
+                />
               )}
 
               <label>Nama <span className="required">*</span></label>
