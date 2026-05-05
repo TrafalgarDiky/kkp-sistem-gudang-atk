@@ -6,7 +6,7 @@
 class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://kkp-sistem-gudang-atk-production.up.railway.app',
+    defaultValue: 'https://api.gatk.my.id',
   );
 
   /// Gabungkan path API, contoh: uri('/api/health')
