@@ -87,6 +87,13 @@ export default function AdminBarang() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Toast (notifikasi sukses/gagal, auto hilang)
+  const [toast, setToast] = useState(null); // { message, variant: "success" | "error" | "info" }
+  const showToast = (message, variant = "success") => {
+    setToast({ message, variant });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   // Modal CRUD
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -258,6 +265,11 @@ export default function AdminBarang() {
       });
       const data = await res.json();
       if (data.success) {
+        // Notifikasi sukses
+        showToast(
+          editingId ? "Barang berhasil diperbarui" : "Barang berhasil ditambahkan",
+          "success"
+        );
         closeModal();
         fetchBarang();
       } else {
@@ -287,6 +299,7 @@ export default function AdminBarang() {
       });
       const data = await res.json();
       if (data.success) {
+        showToast("Barang berhasil dihapus", "success");
         setDeleteTarget(null);
         fetchBarang();
       } else {
@@ -670,7 +683,7 @@ export default function AdminBarang() {
             </div>
             <h2 className="modal-text-center">Hapus Barang?</h2>
             <p className="modal-text-center app-muted" style={{ marginBottom: "1rem" }}>
-              Yakin ingin menghapus <strong>{deleteTarget.nama}</strong>? Tindakan ini tidak bisa dibatalkan.
+              Yakin ingin menghapus barang <strong>{deleteTarget.nama}</strong>?
             </p>
             <div className="modal-actions" style={{ justifyContent: "center" }}>
               <button
@@ -712,6 +725,34 @@ export default function AdminBarang() {
             className="lightbox-img"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* ============ TOAST (SUKSES / ERROR) ============ */}
+      {toast && (
+        <div className="toast-stack">
+          <div className={`toast toast-${toast.variant}`}>
+            <span className="toast-icon">
+              <i
+                className={`fa-solid ${
+                  toast.variant === "success"
+                    ? "fa-check"
+                    : toast.variant === "error"
+                    ? "fa-xmark"
+                    : "fa-info"
+                }`}
+              />
+            </span>
+            <span>{toast.message}</span>
+            <button
+              type="button"
+              className="toast-close"
+              onClick={() => setToast(null)}
+              title="Tutup"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          </div>
         </div>
       )}
     </main>

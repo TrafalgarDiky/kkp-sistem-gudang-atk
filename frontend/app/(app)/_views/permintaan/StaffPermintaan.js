@@ -159,24 +159,26 @@ export default function StaffPermintaan() {
 
   // Derived: stats untuk summary strip
   const stats = useMemo(() => {
-    const s = {
-      menunggu: 0,
-      disetujui: 0,
-      diantar: 0,
-      selesai: 0,
-      ditolak: 0,
-      total: permintaan.length,
-    };
+    // Samakan pola summary strip dengan Admin (Diproses, Selesai, Ditolak, Total)
+    let diproses = 0;
+    let diantar = 0;
+    let selesai = 0;
+    let ditolak = 0;
+
     for (const p of permintaan) {
       const info = getStatusInfo(p);
-      if (info.key === "MENUNGGU") s.menunggu += 1;
-      else if (info.key === "DISETUJUI") s.disetujui += 1;
-      else if (info.key === "DIANTAR") s.diantar += 1;
-      else if (info.key === "SELESAI") s.selesai += 1;
-      else if (info.key === "DITOLAK") s.ditolak += 1;
-      // Dibatalkan tidak dimasukkan strip supaya visual tidak terlalu ramai
+      if (info.key === "SELESAI") selesai += 1;
+      else if (info.key === "DITOLAK") ditolak += 1;
+      else if (info.key === "DIANTAR") diantar += 1;
+      else if (info.key === "DIBATALKAN") {
+        // Dibatalkan tidak dimasukkan ke ringkasan supaya tidak ramai
+      } else {
+        // MENUNGGU / DISETUJUI / DIANTAR / status lain -> anggap sedang diproses
+        diproses += 1;
+      }
     }
-    return s;
+
+    return { diproses, diantar, selesai, ditolak, total: permintaan.length };
   }, [permintaan]);
 
   // Derived: list setelah difilter + sort terbaru di atas
@@ -275,13 +277,8 @@ export default function StaffPermintaan() {
         <div className="summary-strip">
           <span className="summary-strip-item">
             <span className="summary-strip-dot is-warning" />
-            <span className="summary-strip-label">Menunggu</span>
-            <span className="summary-strip-value">{stats.menunggu}</span>
-          </span>
-          <span className="summary-strip-item">
-            <span className="summary-strip-dot is-success" />
-            <span className="summary-strip-label">Disetujui</span>
-            <span className="summary-strip-value">{stats.disetujui}</span>
+            <span className="summary-strip-label">Diproses</span>
+            <span className="summary-strip-value">{stats.diproses}</span>
           </span>
           <span className="summary-strip-item">
             <span className="summary-strip-dot is-info" />
@@ -290,7 +287,7 @@ export default function StaffPermintaan() {
           </span>
           <span className="summary-strip-item">
             <span className="summary-strip-dot is-success" />
-            <span className="summary-strip-label">Sudah sampai</span>
+            <span className="summary-strip-label">Selesai</span>
             <span className="summary-strip-value">{stats.selesai}</span>
           </span>
           <span className="summary-strip-item">
@@ -300,7 +297,7 @@ export default function StaffPermintaan() {
           </span>
           <span className="summary-strip-sep" />
           <span className="summary-strip-item">
-            <span className="summary-strip-label">Total</span>
+            <span className="summary-strip-label">Total permintaan</span>
             <span className="summary-strip-value">{stats.total}</span>
           </span>
         </div>

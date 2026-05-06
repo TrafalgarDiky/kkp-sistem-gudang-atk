@@ -1977,12 +1977,14 @@ button.sidebar-link {
  */
 .toast-stack {
   position: fixed;
-  top: 1rem;
+  /* Letakkan di bawah topbar agar tidak ketutup */
+  top: 84px;
   right: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  z-index: 70;
+  /* Harus di atas topbar (1200) dan modal (2600) */
+  z-index: 3000;
   pointer-events: none;
 }
 
