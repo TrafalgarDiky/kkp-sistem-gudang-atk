@@ -21,6 +21,7 @@ import logStokRoutes from './routes/logStokRoutes.js';
 import laporanRoutes from './routes/laporanRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import deviceTokenRoutes from './routes/deviceTokenRoutes.js';
 import { requireAuth, requireRole } from './middleware/authMiddleware.js';
 import { listPendingUsers, verifyUser } from './controllers/authController.js';
 import {
@@ -93,6 +94,7 @@ const authForgotLimiter = rateLimit({
 // CORS: Izinkan request dari frontend (Next.js)
 // - FRONTEND_URL: daftar eksplisit (pisah koma)
 // - Host *.vercel.app: otomatis diizinkan (preview deploy punya URL beda tiap commit, tidak praktis dicantumkan satu per satu)
+// - gatk.my.id + subdomain: domain produksi Cloudflare (frontend di gatk.my.id, API di api.gatk.my.id)
 const frontendOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
   .split(',')
   .map((o) => o.trim())
@@ -105,6 +107,7 @@ function isAllowedCorsOrigin(origin) {
     const u = new URL(origin);
     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
     if (u.hostname.endsWith('.vercel.app')) return true;
+    if (u.hostname === 'gatk.my.id' || u.hostname.endsWith('.gatk.my.id')) return true;
   } catch {
     return false;
   }
@@ -208,6 +211,7 @@ app.use('/api/auth/login', authLoginLimiter);
 app.use('/api/auth/forgot-password', authForgotLimiter);
 app.use('/api/auth/reset-password', authForgotLimiter);
 app.use('/api/auth', authRoutes);
+app.use('/api/device-token', deviceTokenRoutes);
 
 // Barang (katalog ATK)
 app.use('/api/barang', barangRoutes);

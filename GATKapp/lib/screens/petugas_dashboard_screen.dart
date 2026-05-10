@@ -87,8 +87,9 @@ class _PetugasDashboardScreenState extends State<PetugasDashboardScreen> {
     list.sort((a, b) {
       final da = a.updatedAt ?? a.createdAt;
       final db = b.updatedAt ?? b.createdAt;
-      return (db ?? DateTime.fromMillisecondsSinceEpoch(0))
-          .compareTo(da ?? DateTime.fromMillisecondsSinceEpoch(0));
+      return (db ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(
+        da ?? DateTime.fromMillisecondsSinceEpoch(0),
+      );
     });
     return list.take(5).toList();
   }
@@ -125,13 +126,10 @@ class _PetugasDashboardScreenState extends State<PetugasDashboardScreen> {
               ),
             )
           else
-            _StatCardsRow(
+            _TaskSummaryCard(
               tersedia: stats.tersedia,
               sayaAktif: stats.sayaAktif,
               selesaiHariIni: stats.selesaiHariIni,
-              onTersedia: () => widget.onDrillDown('TERSEDIA'),
-              onSaya: () => widget.onDrillDown('SAYA'),
-              onSelesai: widget.onBukaRiwayat,
             ),
           const SizedBox(height: 20),
           _PrimaryCta(onPressed: widget.onBukaDaftarTugas),
@@ -146,31 +144,14 @@ class _PetugasDashboardScreenState extends State<PetugasDashboardScreen> {
             ),
           ],
           const SizedBox(height: 28),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Tugas terbaru',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: GatkBrand.textOnDark,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: widget.onBukaDaftarTugas,
-                child: Text(
-                  'Lihat semua',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: GatkBrand.logoSky,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            'Tugas terbaru',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: GatkBrand.textOnDark,
+              letterSpacing: -0.3,
+            ),
           ),
           if (_loading) ...[
             const SizedBox(height: 10),
@@ -237,15 +218,13 @@ class _ProfileCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: GatkBrand.surfaceDark,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: GatkBrand.borderDark.withValues(alpha: 0.65),
-        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: GatkBrand.borderDark.withValues(alpha: 0.65)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -256,10 +235,10 @@ class _ProfileCard extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: GatkBrand.logoSky.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(16),
+              color: GatkBrand.logoSky.withValues(alpha: 0.16),
               border: Border.all(
-                color: GatkBrand.logoSky.withValues(alpha: 0.35),
+                color: GatkBrand.logoSky.withValues(alpha: 0.55),
               ),
             ),
             alignment: Alignment.center,
@@ -352,117 +331,119 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-/// Tiga kartu statistik sejajar (Antrian / Tugas saya / Selesai hari ini).
-class _StatCardsRow extends StatelessWidget {
-  const _StatCardsRow({
+/// Ringkasan status tugas. Tidak dibuat clickable agar tidak terasa seperti menu dobel.
+class _TaskSummaryCard extends StatelessWidget {
+  const _TaskSummaryCard({
     required this.tersedia,
     required this.sayaAktif,
     required this.selesaiHariIni,
-    required this.onTersedia,
-    required this.onSaya,
-    required this.onSelesai,
   });
 
   final int tersedia;
   final int sayaAktif;
   final int selesaiHariIni;
-  final VoidCallback onTersedia;
-  final VoidCallback onSaya;
-  final VoidCallback onSelesai;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GatkBrand.surfaceDark,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: GatkBrand.borderDark.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Ringkasan tugas',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: GatkBrand.textOnDark,
+            ),
+          ),
+          const SizedBox(height: 14),
+          _SummaryRow(
+            icon: Icons.schedule_rounded,
+            value: tersedia,
+            label: 'Menunggu diambil',
+            color: const Color(0xFFF59E0B),
+          ),
+          const SizedBox(height: 12),
+          _SummaryRow(
+            icon: Icons.local_shipping_outlined,
+            value: sayaAktif,
+            label: 'Sedang saya proses',
+            color: GatkBrand.logoSky,
+          ),
+          const SizedBox(height: 12),
+          _SummaryRow(
+            icon: Icons.check_circle_outline_rounded,
+            value: selesaiHariIni,
+            label: 'Selesai hari ini',
+            color: const Color(0xFF22C55E),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final int value;
+  final String label;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(width: 12),
         Expanded(
-          child: _StatCell(
-            value: tersedia,
-            label: 'Antrian',
-            valueColor: const Color(0xFFF59E0B),
-            onTap: onTersedia,
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: GatkBrand.textOnDark,
+            ),
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatCell(
-            value: sayaAktif,
-            label: 'Tugas saya',
-            valueColor: GatkBrand.logoSky,
-            onTap: onSaya,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _StatCell(
-            value: selesaiHariIni,
-            label: 'Selesai hari ini',
-            valueColor: const Color(0xFF22C55E),
-            onTap: onSelesai,
+        Text(
+          '$value',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: color,
+            letterSpacing: -0.4,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _StatCell extends StatelessWidget {
-  const _StatCell({
-    required this.value,
-    required this.label,
-    required this.valueColor,
-    required this.onTap,
-  });
-
-  final int value;
-  final String label;
-  final Color valueColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: GatkBrand.surfaceDark,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: GatkBrand.borderDark.withValues(alpha: 0.7),
-            ),
-          ),
-          child: Column(
-            children: [
-              Text(
-                '$value',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: valueColor,
-                  height: 1,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  height: 1.25,
-                  color: GatkBrand.textOnDarkMuted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -485,10 +466,7 @@ class _PrimaryCta extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: const LinearGradient(
-              colors: [
-                Color(0xFF0284C7),
-                GatkBrand.logoSky,
-              ],
+              colors: [Color(0xFF0369A1), GatkBrand.logoSky],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
@@ -505,10 +483,14 @@ class _PrimaryCta extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.list_alt_rounded, color: Colors.white, size: 22),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
                 const SizedBox(width: 10),
                 Text(
-                  'Lihat daftar tugas',
+                  'Buka daftar tugas',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -532,10 +514,8 @@ class _EmptyRecent extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: GatkBrand.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: GatkBrand.borderDark.withValues(alpha: 0.65),
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: GatkBrand.borderDark.withValues(alpha: 0.65)),
       ),
       child: Column(
         children: [
@@ -584,14 +564,14 @@ class _RecentTaskTile extends StatelessWidget {
 
     return Material(
       color: GatkBrand.surfaceDark,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: GatkBrand.borderDark.withValues(alpha: 0.65),
             ),

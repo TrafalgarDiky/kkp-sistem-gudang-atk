@@ -1,5 +1,6 @@
 import prisma from "../config/database.js";
 import { successResponse, errorResponse } from "../utils/response.js";
+import { notifyPetugasTugasBaru } from "../services/pushNotification.js";
 
 /** Kode permintaan manusiawi: P-0001, P-0042, … (huruf P = permintaan; angka 4 digit seperti kode barang A-0001). */
 function formatKodePermintaan(urut) {
@@ -153,6 +154,8 @@ export async function createPermintaan(req, res) {
       });
     });
 
+    await notifyPetugasTugasBaru(permintaan);
+
     return successResponse(
       res,
       "Permintaan berhasil dibuat dan langsung masuk ke tugas petugas",
@@ -249,6 +252,7 @@ export async function approvePermintaan(req, res) {
           errTugas?.message,
         );
       }
+      await notifyPetugasTugasBaru(updated);
     }
 
     return successResponse(

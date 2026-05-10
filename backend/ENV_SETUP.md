@@ -29,6 +29,11 @@ FRONTEND_URL="http://localhost:3000"
 # Environment
 NODE_ENV=development
 
+# --- Opsional: push notification Android (Firebase Cloud Messaging) ---
+# Lokal: arahkan ke file JSON service account yang kamu download dari Firebase.
+# Jangan commit file JSON ini ke Git.
+# FIREBASE_SERVICE_ACCOUNT_PATH="./firebase-service-account.json"
+
 # --- Opsional: kirim email reset password (lupa password) ---
 # Tanpa ini, di development tautan reset dicetak di terminal backend.
 # SMTP_HOST=smtp.gmail.com
@@ -52,6 +57,34 @@ NODE_ENV=development
    - **PORT**: Port untuk backend API (default: 3001)
    
    - **FRONTEND_URL**: URL frontend Next.js (default: http://localhost:3000). Dipakai juga untuk **tautan reset password** di email.
+
+## Push notification Android (Firebase Cloud Messaging)
+
+Backend bisa mengirim notifikasi ke HP petugas saat ada tugas baru. Untuk mengaktifkannya, backend perlu kredensial **Firebase Admin SDK**.
+
+### Lokal (PC)
+
+1. Download file **Service Account JSON** dari Firebase Console → Project settings → Service accounts → Generate new private key.
+2. Simpan file itu di folder `backend/`, misalnya dengan nama:
+   ```text
+   firebase-service-account.json
+   ```
+3. Tambahkan ke `backend/.env`:
+   ```env
+   FIREBASE_SERVICE_ACCOUNT_PATH="./firebase-service-account.json"
+   ```
+
+File `firebase-service-account.json` sudah diabaikan oleh `.gitignore`, tapi tetap jangan dibagikan karena isinya rahasia.
+
+### Production (Railway / Render)
+
+Lebih aman simpan isi JSON sebagai environment variable:
+
+```env
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"..."}
+```
+
+Jika Firebase belum dikonfigurasi, backend tetap berjalan, tetapi push notification akan dilewati.
 
 ## Gambar katalog (disarankan production: Supabase Storage)
 
