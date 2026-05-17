@@ -15,7 +15,7 @@ datasource db {
 // ============================================
 model User {
   id          String   @id @default(uuid())
-  nama        String
+  nama        String   @map("nama_user")
   email       String   @unique
   divisi      String?  @map("divisi")
   passwordHash String  @map("password_hash")
@@ -54,8 +54,8 @@ model User {
 // ============================================
 model Barang {
   id           String   @id @default(uuid())
-  kode         String?  @unique // Kode barang human-readable (contoh: A-0001)
-  nama         String
+  kode         String?  @unique @map("kode_barang") // Kode barang human-readable (contoh: A-0001)
+  nama         String   @map("nama_barang")
   deskripsi    String?
   satuan       String
   stok         Int      @default(0)
@@ -76,7 +76,7 @@ model Barang {
 // ============================================
 model Permintaan {
   id               String      @id @default(uuid())
-  kode             String?     @unique @map("kode") // Kode bisnis, mis. P-0001 (selaras gaya kode barang A-0001)
+  kode             String?     @unique @map("kode_permintaan") // Kode bisnis, mis. P-0001 (selaras gaya kode barang A-0001)
   pemintaId        String      @map("peminta_id")
   statusAdmin      StatusAdmin @default(MENUNGGU_ADMIN) @map("status_admin")
   approvedBy       String?     @map("approved_by")
@@ -103,7 +103,7 @@ model PermintaanItem {
   id          String    @id @default(uuid())
   permintaanId String   @map("permintaan_id")
   barangId    String    @map("barang_id")
-  jumlah      Int
+  jumlah      Int       @map("jumlah_diminta")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   // Relasi: item ini bagian dari permintaan mana
@@ -157,7 +157,7 @@ model DeviceToken {
 model StokMasuk {
   id        String   @id @default(uuid())
   barangId  String   @map("barang_id")
-  jumlah    Int
+  jumlah    Int      @map("jumlah_masuk")
   sumber    String?  // Contoh: "Pembelian", "Donasi"
   tanggal   DateTime @default(now())
   adminId  String   @map("admin_id")
